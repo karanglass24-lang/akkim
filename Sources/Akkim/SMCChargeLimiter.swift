@@ -320,17 +320,21 @@ final class SMCChargeLimiter: ObservableObject {
         p.standardOutput = FileHandle.nullDevice
         // terminationHandler runs off the main thread. The password prompt can stay
         // up for seconds, and blocking the main actor froze the whole app before.
-        p.terminationHandler = { [weak self] proc in
+        p.terminationHandler = { proc in
             let ok = proc.terminationStatus == 0
-            var err: String?
+            let err: String?
             if !ok {
                 // Close our write end first, otherwise readToEnd() waits for EOF forever.
                 try? errPipe.fileHandleForWriting.close()
                 if let data = try? errPipe.fileHandleForReading.readToEnd() {
                     err = String(data: data, encoding: .utf8)
+                } else {
+                    err = nil
                 }
+            } else {
+                err = nil
             }
-            Task { @MainActor in
+            Task { @MainActor [weak self] in
                 self?.adminProcess = nil
                 self?.busy = false
                 completion(ok, err)

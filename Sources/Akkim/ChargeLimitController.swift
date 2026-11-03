@@ -43,8 +43,8 @@ final class ChargeLimitController: ObservableObject {
         // The daemon writes its state every ~10 s; poll cheaply (mtime cache) even
         // while the popover is closed so notifications can react to reason changes.
         refreshHelperStatus()
-        helperTimer = Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { [weak self] _ in
-            Task { @MainActor in self?.refreshHelperStatus() }
+        helperTimer = Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { _ in
+            Task { @MainActor [weak self] in self?.refreshHelperStatus() }
         }
     }
 
@@ -55,8 +55,8 @@ final class ChargeLimitController: ObservableObject {
         bridgeProbe = nil
         Task { await self.refresh() }
         pollTimer?.invalidate()
-        pollTimer = Timer.scheduledTimer(withTimeInterval: 3, repeats: true) { [weak self] _ in
-            Task { @MainActor in await self?.refresh() }
+        pollTimer = Timer.scheduledTimer(withTimeInterval: 3, repeats: true) { _ in
+            Task { @MainActor [weak self] in await self?.refresh() }
         }
     }
 
