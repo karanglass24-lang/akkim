@@ -10,6 +10,7 @@ struct MenuBarPanel: View {
     @EnvironmentObject private var chargeLimit: ChargeLimitController
     @EnvironmentObject private var settings: AppSettings
     @EnvironmentObject private var healthHistory: BatteryHealthHistory
+    @EnvironmentObject private var energyUsage: EnergyUsageStore
     let onQuit: () -> Void
     let onOpenSettings: () -> Void
 
@@ -19,6 +20,10 @@ struct MenuBarPanel: View {
             Divider()
             if settings.isSectionVisible(.power) {
                 metricsSection
+                Divider()
+            }
+            if settings.isSectionVisible(.energy) {
+                energySection
                 Divider()
             }
             if settings.isSectionVisible(.health) {
@@ -167,7 +172,7 @@ struct MenuBarPanel: View {
                     MetricCard(
                         icon: "bolt.fill",
                         label: L10n.t(.charging),
-                        value: stream.latest.map { String(format: "%.1f W", max(0, $0.batteryWatts)) } ?? "--",
+                        value: stream.latest.map { String(format: "%.1f W", abs($0.batteryWatts)) } ?? "--",
                         color: stream.latest?.status == .charging ? .green : .gray
                     )
                     MetricCard(
@@ -193,6 +198,69 @@ struct MenuBarPanel: View {
                 .padding(.bottom, 8)
             }
         }
+    }
+
+    // MARK: - Energy
+
+    private var energySection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            sectionHeader(.energy, title: L10n.t(.energyUsage)) {
+                Text(L10n.t(.last14Days))
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+            }
+
+            if !settings.isSectionCollapsed(.energy) {
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack(spacing: 8) {
+                        energyStat(title: L10n.t(.today),
+                                   value: energyUsage.total(days: 1, \.wallWh))
+                        energyStat(title: L10n.t(.last7Days),
+                                   value: energyUsage.total(days: 7, \.wallWh))
+                        energyStat(title: L10n.t(.last30Days),
+                                   value: energyUsage.total(days: 30, \.wallWh))
+                    }
+
+                    EnergyUsageChart(days: energyUsage.series(days: 14))
+                        .frame(height: 56)
+                        .clipped()
+
+                    HStack(spacing: 14) {
+                        Label("\(L10n.t(.charged)) \(energyText(energyUsage.today(\.chargedWh)))",
+                              systemImage: "bolt.fill")
+                        Label("\(L10n.t(.discharged)) \(energyText(energyUsage.today(\.dischargedWh)))",
+                              systemImage: "battery.50")
+                        Spacer()
+                    }
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                }
+                .padding(.horizontal, 16)
+                .padding(.bottom, 8)
+            }
+        }
+    }
+
+    private func energyStat(title: String, value: Double) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(title)
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+            Text(energyText(value))
+                .font(.system(size: 14, weight: .semibold, design: .rounded))
+                .monospacedDigit()
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 8)
+        .background(RoundedRectangle(cornerRadius: 8).fill(Color.gray.opacity(0.08)))
+    }
+
+    private func energyText(_ wh: Double) -> String {
+        if wh >= 1000 {
+            return String(format: "%.2f kWh", wh / 1000)
+        }
+        return String(format: "%.1f Wh", wh)
     }
 
     // MARK: - Battery health

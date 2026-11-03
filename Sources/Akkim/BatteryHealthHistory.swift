@@ -27,6 +27,7 @@ final class BatteryHealthHistory: ObservableObject {
     @Published private(set) var samples: [BatteryHealthSample] = []
 
     private let fileURL: URL
+    private var isPreview = false
     private let minimumInterval: TimeInterval = 6 * 60 * 60
     private let retention: TimeInterval = 180 * 24 * 60 * 60
 
@@ -71,6 +72,7 @@ final class BatteryHealthHistory: ObservableObject {
     /// In-memory samples so documentation screenshots show a readable trend.
     /// Never written to disk and compiled out of release builds.
     func seedPreviewData() {
+        isPreview = true
         let now = Date()
         let design = samples.last?.designCapacitymAh ?? 8694
         samples = (0..<21).map { index in
@@ -99,6 +101,7 @@ final class BatteryHealthHistory: ObservableObject {
     }
 
     private func save() {
+        guard !isPreview else { return }
         guard let data = try? JSONEncoder().encode(samples) else { return }
         try? data.write(to: fileURL, options: .atomic)
     }

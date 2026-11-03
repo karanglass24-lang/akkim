@@ -24,6 +24,14 @@ enum LKey {
     case conditionService
     case last30Days
 
+    // MARK: Panel — energy
+    case energyUsage
+    case last14Days
+    case today
+    case last7Days
+    case charged
+    case discharged
+
     // MARK: Panel — history
     case batteryPower
     case lastTenMinutes
@@ -162,6 +170,14 @@ extension LKey {
         case .conditionNormal:          return ("Normal", "정상")
         case .conditionService:         return ("Service Recommended", "서비스 권장")
         case .last30Days:               return ("last 30 days", "최근 30일")
+
+        // Panel — energy
+        case .energyUsage:              return ("Energy", "에너지")
+        case .last14Days:               return ("last 14 days", "최근 14일")
+        case .today:                    return ("Today", "오늘")
+        case .last7Days:                return ("7 days", "7일")
+        case .charged:                  return ("Charged", "충전량")
+        case .discharged:               return ("Discharged", "방전량")
 
         // Panel — history
         case .batteryPower:             return ("Battery Power", "배터리 전력")

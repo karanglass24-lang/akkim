@@ -15,6 +15,7 @@ final class StatusBarController: NSObject, NSPopoverDelegate {
     private let chargeLimit: ChargeLimitController
     private let settings: AppSettings
     private let healthHistory: BatteryHealthHistory
+    private let energyUsage: EnergyUsageStore
     private let onQuit: () -> Void
     private let onOpenSettings: () -> Void
     private var bag: Set<AnyCancellable> = []
@@ -25,11 +26,12 @@ final class StatusBarController: NSObject, NSPopoverDelegate {
     /// 동일한 종류의 알림이 너무 자주 울리지 않도록 최소 간격(초)을 둡니다.
     private let notificationMinInterval: TimeInterval = 60
 
-    init(stream: SampleStream, chargeLimit: ChargeLimitController, settings: AppSettings, healthHistory: BatteryHealthHistory, onQuit: @escaping () -> Void, onOpenSettings: @escaping () -> Void) {
+    init(stream: SampleStream, chargeLimit: ChargeLimitController, settings: AppSettings, healthHistory: BatteryHealthHistory, energyUsage: EnergyUsageStore, onQuit: @escaping () -> Void, onOpenSettings: @escaping () -> Void) {
         self.stream = stream
         self.chargeLimit = chargeLimit
         self.settings = settings
         self.healthHistory = healthHistory
+        self.energyUsage = energyUsage
         self.onQuit = onQuit
         self.onOpenSettings = onOpenSettings
         self.statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
@@ -46,6 +48,7 @@ final class StatusBarController: NSObject, NSPopoverDelegate {
             .environmentObject(chargeLimit)
             .environmentObject(settings)
             .environmentObject(healthHistory)
+            .environmentObject(energyUsage)
         let hosting = NSHostingController(rootView: panel)
         hosting.sizingOptions = [.preferredContentSize]
         popover.contentViewController = hosting
@@ -130,6 +133,7 @@ final class StatusBarController: NSObject, NSPopoverDelegate {
                 if let sample {
                     self.notifyIfNeeded(sample: sample)
                     self.healthHistory.record(sample)
+                    self.energyUsage.record(sample)
                 }
             }
             .store(in: &bag)
@@ -167,7 +171,7 @@ final class StatusBarController: NSObject, NSPopoverDelegate {
         guard let s = sample else { return "--" }
         switch s.status {
         case .charging:
-            return String(format: "%.1f W", max(0, s.batteryWatts))
+            return String(format: "%.1f W", abs(s.batteryWatts))
         case .acPaused:
             return s.stateOfChargePercent.map { "AC · \($0)%" } ?? "AC"
         case .discharging:

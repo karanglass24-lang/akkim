@@ -29,6 +29,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             chargeLimit: container.chargeLimitController,
             settings: container.settings,
             healthHistory: container.healthHistory,
+            energyUsage: container.energyUsage,
             onQuit: { NSApp.terminate(nil) },
             onOpenSettings: { [weak self] in self?.openSettings() }
         )
@@ -36,6 +37,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         #if DEBUG
         if CommandLine.arguments.contains("--screenshot") {
             container.healthHistory.seedPreviewData()
+            container.energyUsage.seedPreviewData()
             scheduleDocsScreenshot()
         }
         #endif
@@ -109,6 +111,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationWillTerminate(_ notification: Notification) {
         container.stop()
+        container.energyUsage.flush()
         // On exit, restore normal charging via the helper (fail-safe).
         if container.smcLimiter.installed {
             container.smcLimiter.cancelTopUp()

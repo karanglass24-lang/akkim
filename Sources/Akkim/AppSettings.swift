@@ -44,6 +44,7 @@ enum MenuBarIconStyle: String, CaseIterable, Identifiable {    /// Outline batte
 /// Collapsible sections of the popover panel.
 enum PanelSection: String, CaseIterable, Identifiable {
     case power
+    case energy
     case health
     case history
     case limit
@@ -53,6 +54,7 @@ enum PanelSection: String, CaseIterable, Identifiable {
     var titleKey: LKey {
         switch self {
         case .power: return .power
+        case .energy: return .energyUsage
         case .health: return .health
         case .history: return .batteryPower
         case .limit: return .chargeLimit
@@ -128,6 +130,12 @@ final class AppSettings: ObservableObject {
         }
         if let raw = defaults.stringArray(forKey: "panelCollapsedSections") {
             collapsedSections = Set(raw.compactMap(PanelSection.init(rawValue:)))
+        }
+        // Sections added in a later version start visible for existing installs.
+        if defaults.integer(forKey: "panelSectionsVersion") < 2 {
+            visibleSections.insert(.energy)
+            defaults.set(2, forKey: "panelSectionsVersion")
+            defaults.set(visibleSections.map(\.rawValue), forKey: "panelVisibleSections")
         }
     }
 
