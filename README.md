@@ -1,5 +1,7 @@
 # 아낌 (Akkim)
 
+<p align="center"><img src="docs/images/icon.png" width="96" alt="Akkim app icon"></p>
+
 A macOS menu bar app that limits battery charging and monitors charging / battery power. It is an independent, AlDente-style charge limiter and is **not affiliated with Al Dente / AppHouseKitchen**.
 
 The name 아낌 (*akkim*) is the Korean noun form of "to save / to cherish" (아끼다) — the idea of sparing the battery rather than keeping it topped up.

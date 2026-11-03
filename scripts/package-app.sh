@@ -56,6 +56,7 @@ cp "${APP_BIN}" "${MACOS_DIR}/${APP_NAME}"
 cp "${HELPER_BIN}" "${RES_DIR}/akkim-helper"
 cp "scripts/install-helper.sh" "${RES_DIR}/install-helper.sh"
 cp "Resources/Info.plist" "${CONTENTS}/Info.plist"
+cp "Resources/AppIcon.icns" "${RES_DIR}/AppIcon.icns"
 # MIT requires the copyright + permission notice in every distributed copy.
 cp "LICENSE" "${RES_DIR}/LICENSE"
 cp "THIRD-PARTY-NOTICES.md" "${RES_DIR}/THIRD-PARTY-NOTICES.md"

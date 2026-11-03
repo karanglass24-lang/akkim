@@ -143,6 +143,7 @@ battery-limit/
 ├── LICENSE                       # MIT + ChargeWatching 고지
 ├── THIRD-PARTY-NOTICES.md
 ├── Resources/Info.plist
+├── Resources/AppIcon.icns      # 앱 아이콘
 ├── ui-mockup.html                # UI 참고용 목업
 ├── scripts/
 │   ├── package-app.sh            # release build → dist/Akkim.app → ad-hoc 서명
@@ -400,6 +401,14 @@ battery-limit/
   알림 권한 요청은 `AppDelegate.applicationDidFinishLaunching`으로 이동했습니다.
 - **검증**: 설정 열기 → 닫기 → 다시 열기 후 `NSApp.windows`에 상태바 창과 설정 창만 존재.
 
+### 5.10 앱 아이콘 (2026-11-04)
+
+- `Resources/AppIcon.icns` 추가, `Info.plist`에 `CFBundleIconFile = AppIcon`.
+- 디자인: 민트→틸 그라데이션 타일, 80% 채워진 배터리, 중앙 하트 컷아웃
+  (아낌 = 배터리를 아끼다). 텍스트/타사 아트워크 없음.
+- `docs/images/icon.png`(1024)는 README 상단에 사용.
+- `scripts/package-app.sh`가 `.icns`를 번들 `Contents/Resources`로 복사합니다.
+
 ---
 
 ## 6. 실기기 테스트 체크리스트
@@ -617,7 +626,7 @@ EOF
 ### 9.2 저장소/배포
 
 - [x] 릴리스 워크플로 추가 (`.github/workflows/release.yml`, 태그 `v*` → zip + Release)
-- [x] 앱 버전 `CFBundleShortVersionString 1.2.1` / `CFBundleVersion 6`
+- [x] 앱 버전 `CFBundleShortVersionString 1.3.0` / `CFBundleVersion 7`
 - [x] `git init` 및 `https://github.com/karanglass24-lang/akkim` push
 - [ ] 폴더명 `battery-limit` → `akkim` 정리 (선택)
 - [x] 태그 푸시(`v1.0.0`, `v1.0.1`) 후 Release 자산(`Akkim.zip`, `.sha256`) 확인

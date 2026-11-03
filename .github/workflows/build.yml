@@ -41,6 +41,7 @@ jobs:
           test -x "$APP/Contents/MacOS/Akkim"
           test -f "$APP/Contents/Resources/LICENSE"
           test -f "$APP/Contents/Resources/THIRD-PARTY-NOTICES.md"
+          test -f "$APP/Contents/Resources/AppIcon.icns"
           /usr/libexec/PlistBuddy -c "Print :CFBundleIdentifier" "$APP/Contents/Info.plist"
           /usr/libexec/PlistBuddy -c "Print :CFBundleName" "$APP/Contents/Info.plist"
           /usr/libexec/PlistBuddy -c "Print :CFBundleExecutable" "$APP/Contents/Info.plist"
