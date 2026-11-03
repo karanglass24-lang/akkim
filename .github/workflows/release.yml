@@ -1,0 +1,53 @@
+name: release
+
+# Push a tag like v1.0.0 to build the app and publish it as a GitHub Release.
+# The zip is attached as `Akkim.zip` so this URL always points at the newest build:
+#   https://github.com/karanglass24-lang/akkim/releases/latest/download/Akkim.zip
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: macos-14
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Show toolchain
+        run: |
+          xcodebuild -version
+          swift --version
+
+      - name: Build app bundle
+        run: bash scripts/package-app.sh
+
+      - name: Verify signature and contents
+        run: |
+          set -euo pipefail
+          codesign --verify --deep --strict dist/Akkim.app
+          test -f dist/Akkim.app/Contents/Resources/LICENSE
+          test -f dist/Akkim.app/Contents/Resources/THIRD-PARTY-NOTICES.md
+          test -x dist/Akkim.app/Contents/MacOS/Akkim
+
+      - name: Package zip
+        run: |
+          set -euo pipefail
+          cd dist
+          ditto -c -k --keepParent Akkim.app Akkim.zip
+          shasum -a 256 Akkim.zip > Akkim.zip.sha256
+          cat Akkim.zip.sha256
+
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh release create "${GITHUB_REF_NAME}" \
+            "dist/Akkim.zip" "dist/Akkim.zip.sha256" \
+            --title "아낌 ${GITHUB_REF_NAME}" \
+            --generate-notes

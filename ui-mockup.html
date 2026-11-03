@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>아낌 (Akkim) UI Mockup</title>
+<style>
+  :root {
+    --bg: #e9e9ee;
+    --panel-bg: rgba(245, 245, 247, 0.78);
+    --card-bg: rgba(0, 0, 0, 0.05);
+    --text-primary: #1d1d1f;
+    --text-secondary: #86868b;
+    --accent: #0a84ff;
+    --green: #30d158;
+    --pink: #ff375f;
+    --indigo: #5e5ce6;
+    --orange: #ff9f0a;
+    --red: #ff453a;
+    --border: rgba(0, 0, 0, 0.12);
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif;
+    background: var(--bg);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    min-height: 100vh; color: var(--text-primary); padding: 24px 0;
+  }
+  .status-bar {
+    display: flex; align-items: center; gap: 10px; padding: 6px 12px;
+    background: rgba(0,0,0,0.05); border-radius: 8px; margin-bottom: 20px;
+  }
+  .status-title { font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .popover {
+    width: 360px; background: var(--panel-bg);
+    backdrop-filter: blur(20px) saturate(180%);
+    border: 1px solid var(--border); border-radius: 14px;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.15); overflow: hidden;
+  }
+  hr { height: 1px; background: var(--border); border: none; margin: 0; }
+  .header { display: flex; align-items: center; gap: 12px; padding: 16px; }
+  .gauge { position: relative; width: 64px; height: 64px; }
+  .gauge-track { width: 100%; height: 100%; border-radius: 50%; border: 8px solid rgba(0,0,0,0.08); }
+  .gauge-fill {
+    position: absolute; inset: 0; border-radius: 50%;
+    border: 8px solid var(--green); border-top-color: transparent; border-right-color: transparent;
+    transform: rotate(-45deg);
+  }
+  .gauge-text { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+  .gauge-text .pct { font-size: 20px; font-weight: 700; line-height: 1; }
+  .gauge-text .sym { font-size: 10px; color: var(--text-secondary); }
+  .header-info { flex: 1; }
+  .status-chip { font-size: 11px; font-weight: 600; color: var(--text-secondary); }
+  .headline { font-size: 22px; font-weight: 700; }
+  .btn-settings { width: 32px; height: 32px; border-radius: 8px; background: rgba(0,0,0,0.05); border: none; cursor: pointer; color: var(--text-secondary); }
+  .section { padding: 12px 16px; }
+  .section-title { font-size: 11px; font-weight: 700; color: var(--text-secondary); letter-spacing: .4px; text-transform: uppercase; margin-bottom: 8px; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .card { background: var(--card-bg); border-radius: 8px; padding: 10px; }
+  .card .top { display: flex; justify-content: space-between; }
+  .card .value { font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .card .label { font-size: 10px; color: var(--text-secondary); }
+  .chips { display: flex; gap: 10px; }
+  .chip { flex: 1; display: flex; gap: 6px; align-items: center; background: var(--card-bg); border-radius: 8px; padding: 8px 10px; }
+  .chip .v { font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .chip .l { font-size: 10px; color: var(--text-secondary); }
+  .chart-head { display: flex; justify-content: space-between; margin-bottom: 6px; }
+  .chart-head .t { font-size: 11px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: .4px; }
+  .chart-head .s { font-size: 10px; color: var(--text-secondary); }
+  .chart { height: 72px; background: var(--card-bg); border-radius: 8px; overflow: hidden; }
+  .limit-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+  .limit-head .v { font-size: 15px; font-weight: 700; }
+  .segmented { display: flex; background: var(--card-bg); border-radius: 8px; padding: 3px; gap: 3px; margin-bottom: 10px; }
+  .seg { flex: 1; padding: 6px; border: none; background: transparent; border-radius: 6px; font-size: 12px; font-weight: 600; color: var(--text-secondary); cursor: pointer; }
+  .seg.active { background: var(--accent); color: #fff; }
+  .row { display: flex; align-items: center; justify-content: space-between; padding: 6px 0; }
+  .row .name { font-size: 13px; font-weight: 500; }
+  .switch { width: 44px; height: 24px; background: #ccc; border-radius: 12px; position: relative; }
+  .switch.on { background: var(--accent); }
+  .knob { position: absolute; top: 2px; left: 2px; width: 20px; height: 20px; background: #fff; border-radius: 50%; }
+  .switch.on .knob { left: 22px; }
+  .calib { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--text-secondary); padding-top: 4px; }
+  .footer { display: flex; justify-content: space-between; align-items: center; padding: 10px 16px; background: rgba(255,255,255,0.35); }
+  .footer button { border: none; background: none; font-size: 11px; cursor: pointer; color: var(--text-secondary); }
+  .footer .primary { color: var(--accent); font-weight: 600; }
+  .note { margin-top: 14px; font-size: 11px; color: var(--text-secondary); }
+</style>
+</head>
+<body>
+
+  <div class="status-bar">
+    <span style="color:#30d158">⚡</span>
+    <span class="status-title">8.2 W · 78%</span>
+  </div>
+
+  <div class="popover">
+    <div class="header">
+      <div class="gauge">
+        <div class="gauge-track"></div>
+        <div class="gauge-fill"></div>
+        <div class="gauge-text"><span class="pct">78</span><span class="sym">%</span></div>
+      </div>
+      <div class="header-info">
+        <div class="status-chip">Charging</div>
+        <div class="headline">8.2 W</div>
+      </div>
+      <button class="btn-settings">⚙</button>
+    </div>
+
+    <hr>
+
+    <div class="section">
+      <div class="section-title">Power</div>
+      <div class="grid">
+        <div class="card"><div class="top"><span style="color:#30d158">⚡</span><span class="value">8.2 W</span></div><div class="label">Charging</div></div>
+        <div class="card"><div class="top"><span style="color:#0a84ff">🔌</span><span class="value">14.0 W</span></div><div class="label">Wall Output</div></div>
+        <div class="card"><div class="top"><span style="color:#5e5ce6">▣</span><span class="value">5.8 W</span></div><div class="label">System Load</div></div>
+        <div class="card"><div class="top"><span style="color:#40c8e0">🔋</span><span class="value">78%</span></div><div class="label">Battery Level</div></div>
+      </div>
+    </div>
+
+    <hr>
+
+    <div class="section">
+      <div class="section-title">Battery</div>
+      <div class="chips">
+        <div class="chip"><span style="color:#ff375f">♥</span><div><div class="v">92%</div><div class="l">Health</div></div></div>
+        <div class="chip"><span style="color:#5e5ce6">⟳</span><div><div class="v">214</div><div class="l">Cycles</div></div></div>
+        <div class="chip"><span style="color:#ff9f0a">🌡</span><div><div class="v">31.2°C</div><div class="l">Temp</div></div></div>
+      </div>
+    </div>
+
+    <hr>
+
+    <div class="section">
+      <div class="chart-head"><span class="t">Battery Power</span><span class="s">last 10 min</span></div>
+      <div class="chart">
+        <svg width="100%" height="72" viewBox="0 0 320 72" preserveAspectRatio="none">
+          <line x1="0" y1="40" x2="320" y2="40" stroke="rgba(0,0,0,0.15)" stroke-width="1" stroke-dasharray="3 3"/>
+          <path d="M0,46 L20,44 L40,30 L60,34 L80,22 L100,26 L120,16 L140,20 L160,14 L180,24 L200,18 L220,10 L240,20 L260,16 L280,12 L300,18 L320,14"
+                fill="none" stroke="#0a84ff" stroke-width="1.5"/>
+          <path d="M0,46 L20,44 L40,30 L60,34 L80,22 L100,26 L120,16 L140,20 L160,14 L180,24 L200,18 L220,10 L240,20 L260,16 L280,12 L300,18 L320,14 L320,72 L0,72 Z"
+                fill="rgba(10,132,255,0.18)"/>
+        </svg>
+      </div>
+    </div>
+
+    <hr>
+
+    <div class="section">
+      <div class="limit-head">
+        <div class="section-title" style="margin:0">Charge Limit</div>
+        <div class="v">80%</div>
+      </div>
+      <div class="segmented">
+        <button class="seg active">80%</button>
+        <button class="seg">85%</button>
+        <button class="seg">90%</button>
+        <button class="seg">95%</button>
+        <button class="seg">100%</button>
+      </div>
+      <div class="row"><span class="name">Sailing Mode</span><div class="switch on"><div class="knob"></div></div></div>
+      <div class="row"><span class="name">Discharge to Limit</span><div class="switch"><div class="knob"></div></div></div>
+      <div class="calib">⏱ Calibration in 4d</div>
+    </div>
+
+    <hr>
+
+    <div class="footer">
+      <button>Quit Akkim</button>
+      <button class="primary">Settings</button>
+    </div>
+  </div>
+
+  <div class="note">아낌 (Akkim) · MIT License · independent project, not affiliated with Al Dente</div>
+
+</body>
+</html>

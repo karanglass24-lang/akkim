@@ -1,0 +1,54 @@
+name: build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    # Apple Silicon runner: the app targets arm64 only.
+    runs-on: macos-14
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Show toolchain
+        run: |
+          xcodebuild -version
+          swift --version
+
+      - name: Build (debug)
+        run: swift build -v
+
+      - name: Build (release)
+        run: swift build -c release
+
+      - name: Package app bundle
+        run: bash scripts/package-app.sh
+
+      - name: Verify signature
+        run: |
+          set -euo pipefail
+          codesign --verify --deep --strict dist/Akkim.app
+          codesign -dv dist/Akkim.app 2>&1 || true
+
+      - name: Verify bundle contents
+        run: |
+          set -euo pipefail
+          APP=dist/Akkim.app
+          test -x "$APP/Contents/MacOS/Akkim"
+          test -f "$APP/Contents/Resources/LICENSE"
+          test -f "$APP/Contents/Resources/THIRD-PARTY-NOTICES.md"
+          /usr/libexec/PlistBuddy -c "Print :CFBundleIdentifier" "$APP/Contents/Info.plist"
+          /usr/libexec/PlistBuddy -c "Print :CFBundleName" "$APP/Contents/Info.plist"
+          /usr/libexec/PlistBuddy -c "Print :CFBundleExecutable" "$APP/Contents/Info.plist"
+          codesign -dv "$APP" 2>&1 | head -n 20 || true
+
+      - name: Upload app bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: Akkim-app
+          path: dist/Akkim.app
+          if-no-files-found: error
