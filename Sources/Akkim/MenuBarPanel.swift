@@ -4,6 +4,7 @@
 
 import SwiftUI
 import AppKit
+import UniformTypeIdentifiers
 
 struct MenuBarPanel: View {
     @EnvironmentObject private var stream: SampleStream
@@ -221,9 +222,35 @@ struct MenuBarPanel: View {
                                    value: energyUsage.total(days: 30, \.wallWh))
                     }
 
-                    EnergyUsageChart(days: energyUsage.series(days: 14))
-                        .frame(height: 56)
-                        .clipped()
+                    HStack(spacing: 8) {
+                        Picker("", selection: $settings.energyChartMode) {
+                            Text(L10n.t(.last14DaysShort)).tag(AppSettings.EnergyChartMode.days)
+                            Text(L10n.t(.today)).tag(AppSettings.EnergyChartMode.hours)
+                        }
+                        .pickerStyle(.segmented)
+                        .labelsHidden()
+                        .frame(width: 150)
+
+                        Spacer()
+
+                        Button {
+                            exportEnergyCSV()
+                        } label: {
+                            Label(L10n.t(.exportCSV), systemImage: "square.and.arrow.up")
+                                .font(.caption2)
+                        }
+                        .buttonStyle(.link)
+                    }
+
+                    Group {
+                        if settings.energyChartMode == .days {
+                            EnergyUsageChart(days: energyUsage.series(days: 14))
+                        } else {
+                            HourlyEnergyChart(values: energyUsage.hourlyToday())
+                        }
+                    }
+                    .frame(height: 56)
+                    .clipped()
 
                     HStack(spacing: 14) {
                         Label("\(L10n.t(.charged)) \(energyText(energyUsage.today(\.chargedWh)))",
@@ -254,6 +281,15 @@ struct MenuBarPanel: View {
         .padding(.horizontal, 10)
         .padding(.vertical, 8)
         .background(RoundedRectangle(cornerRadius: 8).fill(Color.gray.opacity(0.08)))
+    }
+
+    private func exportEnergyCSV() {
+        let panel = NSSavePanel()
+        panel.allowedContentTypes = [.commaSeparatedText]
+        panel.canCreateDirectories = true
+        panel.nameFieldStringValue = "akkim-energy-\(DailyEnergy.formatter.string(from: Date())).csv"
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        try? energyUsage.csvString().write(to: url, atomically: true, encoding: .utf8)
     }
 
     private func energyText(_ wh: Double) -> String {

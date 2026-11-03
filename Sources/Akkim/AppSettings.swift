@@ -78,10 +78,19 @@ final class AppSettings: ObservableObject {
     @Published var heatProtectionC: Int = 0
     @Published var menuBarDisplay: MenuBarDisplay = .power
     @Published var menuBarIconStyle: MenuBarIconStyle = .battery
-    /// Panel sections that are shown at all.
+    /// Which energy chart the panel shows.
+enum EnergyChartMode: String, CaseIterable, Identifiable {
+    case days
+    case hours
+
+    var id: String { rawValue }
+}
+
+/// Panel sections that are shown at all.
     @Published var visibleSections: Set<PanelSection> = Set(PanelSection.allCases)
     /// Panel sections the user has collapsed with the header chevron.
     @Published var collapsedSections: Set<PanelSection> = []
+    @Published var energyChartMode: EnergyChartMode = .days
 
     private let defaults = UserDefaults.standard
 
@@ -104,6 +113,7 @@ final class AppSettings: ObservableObject {
             "menuBarIconStyle": MenuBarIconStyle.battery.rawValue,
             "panelVisibleSections": PanelSection.allCases.map(\.rawValue),
             "panelCollapsedSections": [String](),
+            "energyChartMode": EnergyChartMode.days.rawValue,
         ] as [String: Any])
     }
 
@@ -131,6 +141,10 @@ final class AppSettings: ObservableObject {
         if let raw = defaults.stringArray(forKey: "panelCollapsedSections") {
             collapsedSections = Set(raw.compactMap(PanelSection.init(rawValue:)))
         }
+        if let raw = defaults.string(forKey: "energyChartMode"),
+           let mode = EnergyChartMode(rawValue: raw) {
+            energyChartMode = mode
+        }
         // Sections added in a later version start visible for existing installs.
         if defaults.integer(forKey: "panelSectionsVersion") < 2 {
             visibleSections.insert(.energy)
@@ -152,6 +166,7 @@ final class AppSettings: ObservableObject {
         defaults.set(menuBarIconStyle.rawValue, forKey: "menuBarIconStyle")
         defaults.set(visibleSections.map(\.rawValue), forKey: "panelVisibleSections")
         defaults.set(collapsedSections.map(\.rawValue), forKey: "panelCollapsedSections")
+        defaults.set(energyChartMode.rawValue, forKey: "energyChartMode")
     }
 
     // MARK: Panel sections

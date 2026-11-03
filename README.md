@@ -49,9 +49,9 @@ The `release` workflow builds on a macOS runner, verifies the bundle, zips it as
   SoC chart overlays the current limit and sailing lower bound
 - **Pause reason** from the helper (`holding at limit`, `too hot`, `calibrating`,
   `topping up`, `discharging`, `adapter not connected`)
-- **Energy use**: daily / 7-day / 30-day AC energy totals (Wh or kWh) with a 14-day
-  bar chart and today's charged / discharged energy. Totals cover time while the app
-  is running (sleep and quit gaps are ignored).
+- **Energy use**: daily / 7-day / 30-day AC energy totals (Wh or kWh), a 14-day bar
+  chart, today's hourly view, today's charged / discharged energy, and CSV export.
+  Totals cover time while the app is running (sleep and quit gaps are ignored).
 
 ### Charging Limit
 - Apple Silicon Mac (M1–M4), macOS 13+

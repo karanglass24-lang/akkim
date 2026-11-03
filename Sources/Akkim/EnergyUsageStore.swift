@@ -9,6 +9,8 @@ struct DailyEnergy: Codable, Identifiable, Equatable {
     var systemWh: Double = 0
     var chargedWh: Double = 0
     var dischargedWh: Double = 0
+    /// AC energy per hour (0–23) for this day, when known.
+    var hourlyWallWh: [Double]?
 
     var id: String { day }
 
@@ -73,6 +75,12 @@ final class EnergyUsageStore: ObservableObject {
         var bucket = buckets.removeLast()
         if let wall = sample.wallOutputWatts, wall > 0 {
             bucket.wallWh += wall * hours
+            var hourly = bucket.hourlyWallWh ?? Array(repeating: 0, count: 24)
+            let hour = Calendar.current.component(.hour, from: now)
+            if hourly.indices.contains(hour) {
+                hourly[hour] += wall * hours
+            }
+            bucket.hourlyWallWh = hourly
         }
         if let system = sample.systemLoadWatts, system > 0 {
             bucket.systemWh += system * hours
@@ -106,6 +114,24 @@ final class EnergyUsageStore: ObservableObject {
     func today(_ metric: KeyPath<DailyEnergy, Double>) -> Double {
         let today = DailyEnergy.formatter.string(from: Date())
         return buckets.last(where: { $0.day == today })?[keyPath: metric] ?? 0
+    }
+
+    /// AC energy per hour for today (0–23).
+    func hourlyToday() -> [Double] {
+        let today = DailyEnergy.formatter.string(from: Date())
+        return buckets.last(where: { $0.day == today })?.hourlyWallWh
+            ?? Array(repeating: 0, count: 24)
+    }
+
+    /// CSV of every stored day (oldest first).
+    func csvString() -> String {
+        var lines = ["date,wall_wh,system_wh,charged_wh,discharged_wh"]
+        for bucket in buckets.sorted(by: { $0.day < $1.day }) {
+            lines.append(String(format: "%@,%.3f,%.3f,%.3f,%.3f",
+                                bucket.day, bucket.wallWh, bucket.systemWh,
+                                bucket.chargedWh, bucket.dischargedWh))
+        }
+        return lines.joined(separator: "\n") + "\n"
     }
 
     /// The last `days` days, oldest first, including days without samples.

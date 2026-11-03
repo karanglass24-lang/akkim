@@ -31,7 +31,7 @@ SoC 차트, 사유 기반 알림**을 추가했습니다.
 | 안정성(P0) | JSON 원자적 쓰기, 데몬 last-good-config(약 60초), 권한 775/664 자동 교정, 서명 순서, 알림 게이팅, 구 데몬(`com.batterylimit.helper`) 제거 |
 | UX(P1) | 관리자 인증 비블로킹(`Process.terminationHandler`), 제한 on/off 토글, `shortcuts list` 프로브 캐싱 |
 | 이번 배치 | 헬퍼 상태 파일, 일시정지 사유, 원샷 만충전, 열 보호, 우클릭 빠른 메뉴, 메뉴바 표시 옵션, SoC 스파크라인, 알림 세분화 |
-| 지역화 | `LKey` **116개**, `LKey.text` exhaustive switch |
+| 지역화 | `LKey` **118개**, `LKey.text` exhaustive switch |
 | 패키징 | `scripts/package-app.sh`, ad-hoc 서명, MIT 고지 파일 번들 포함 |
 | CI | `.github/workflows/build.yml` (macos-14, build → package → signature/bundle 검증 → artifact) |
 
@@ -162,7 +162,7 @@ battery-limit/
 │   ├── MenuBarPanel.swift        # 팝오버 UI
 │   ├── SettingsView.swift
 │   ├── HistoryChartView.swift    # 전력 + SoC 차트
-│   ├── Localization.swift        # LKey 116개 (ko/en)
+│   ├── Localization.swift        # LKey 118개 (ko/en)
 │   ├── MenuBarIcon.swift         # 메뉴바 배터리 글리프(AppKit 직접 그리기)
 │   ├── BatteryHealthHistory.swift # 건강도 샘플 저장/추이
 │   ├── BatteryHealthChart.swift   # Swift Charts 건강도 영역 그래프
@@ -381,6 +381,17 @@ battery-limit/
 - **한계**: 앱이 실행 중인 동안만 집계합니다. 앱 종료·잠자기 구간은 제외됩니다.
 - 스크린샷용 `seedPreviewData()`는 `isPreview` 플래그로 **디스크에 저장하지 않습니다**.
 
+### 5.8 시간대별 보기 + CSV 내보내기 (2026-11-03)
+
+- `DailyEnergy.hourlyWallWh`: 오늘의 시간대별(0–23) AC 사용량을 함께 저장합니다
+  (기존 파일에는 없으므로 optional, 새 기록부터 채워짐).
+- 패널 에너지 섹션에 **14일 / 오늘** 세그먼트와 **CSV 내보내기** 링크 추가.
+  - 선택한 보기는 `AppSettings.energyChartMode`에 저장됩니다.
+  - CSV는 `date,wall_wh,system_wh,charged_wh,discharged_wh` 형식으로 저장 패널을 통해 내보냅니다.
+- 참고: Command Line Tools만 있는 환경에서는 SwiftUI `@State` 매크로 플러그인이 없어
+  빌드가 실패할 수 있습니다. 이 프로젝트는 화면 상태도 `AppSettings`(@Published)로
+  관리합니다.
+
 ---
 
 ## 6. 실기기 테스트 체크리스트
@@ -598,7 +609,7 @@ EOF
 ### 9.2 저장소/배포
 
 - [x] 릴리스 워크플로 추가 (`.github/workflows/release.yml`, 태그 `v*` → zip + Release)
-- [x] 앱 버전 `CFBundleShortVersionString 1.1.0` / `CFBundleVersion 4`
+- [x] 앱 버전 `CFBundleShortVersionString 1.2.0` / `CFBundleVersion 5`
 - [x] `git init` 및 `https://github.com/karanglass24-lang/akkim` push
 - [ ] 폴더명 `battery-limit` → `akkim` 정리 (선택)
 - [x] 태그 푸시(`v1.0.0`, `v1.0.1`) 후 Release 자산(`Akkim.zip`, `.sha256`) 확인
@@ -624,7 +635,7 @@ EOF
 
 - **UI 문자열**: 반드시 `Sources/Akkim/Localization.swift`의 `LKey`에 추가.
   `LKey.text`는 exhaustive switch이므로 번역 누락 시 컴파일 실패.
-  현재 116개.
+  현재 118개.
 - **리소스 없음**: `.lproj`를 쓰지 않으므로 `Package.swift`에 `resources:`를 추가하지 말 것.
 - **동시성**: `SMCChargeLimiter`, `ChargeLimitController`, `AppSettings`,
   `StatusBarController`, `SampleStream`은 `@MainActor`.

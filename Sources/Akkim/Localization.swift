@@ -27,7 +27,9 @@ enum LKey {
     // MARK: Panel — energy
     case energyUsage
     case last14Days
+    case last14DaysShort
     case today
+    case exportCSV
     case last7Days
     case charged
     case discharged
@@ -174,7 +176,9 @@ extension LKey {
         // Panel — energy
         case .energyUsage:              return ("Energy", "에너지")
         case .last14Days:               return ("last 14 days", "최근 14일")
+        case .last14DaysShort:          return ("14 days", "14일")
         case .today:                    return ("Today", "오늘")
+        case .exportCSV:                return ("Export CSV", "CSV 내보내기")
         case .last7Days:                return ("7 days", "7일")
         case .charged:                  return ("Charged", "충전량")
         case .discharged:               return ("Discharged", "방전량")
