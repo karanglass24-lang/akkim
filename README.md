@@ -15,6 +15,9 @@ The name 아낌 (*akkim*) is the Korean noun form of "to save / to cherish" (아
 > **Continuing on a Mac?** See [docs/HANDOVER.md](docs/HANDOVER.md) for the full handover:
 > current status, build/install steps in order, file IPC schemas, a device test checklist,
 > troubleshooting, emergency recovery, and remaining work.
+>
+> **사용 설명서**: [docs/MANUAL.md](docs/MANUAL.md) — 설치, 충전 제한, macOS 기본 제한 연동,
+> 에너지 사용량, 문제 해결.
 
 ## Download
 
