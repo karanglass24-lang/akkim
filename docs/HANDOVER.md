@@ -349,6 +349,22 @@ battery-limit/
 - 상단 상태/게이지와 하단(보증·종료·설정)은 항상 표시합니다.
 - 설정 창은 섹션이 늘어나도 잘리지 않도록 `ScrollView`로 감쌌습니다 (420×700).
 
+### 5.6 문서용 스크린샷 (2026-11-03)
+
+- `README.md` 상단에 `docs/images/panel.png`, `docs/images/settings.png` 추가.
+- 화면 기록 권한 없이 촬영하려고 DEBUG 빌드에 `--screenshot` 모드를 넣었습니다.
+
+  ```bash
+  bash scripts/package-app.sh debug
+  dist/Akkim.app/Contents/MacOS/Akkim --screenshot
+  # -> /private/var/tmp/akkim-panel.png, akkim-settings.png
+  ```
+
+  팝오버와 설정 창을 스스로 스냅샷한 뒤 종료합니다.
+- 건강도 추이 그래프는 캡처용으로만 메모리에서 샘플을 생성합니다
+  (`seedPreviewData`, `#if DEBUG`). 디스크에 저장하지 않고 릴리스 빌드에는 포함되지 않습니다.
+- 릴리스 빌드는 기존처럼 `bash scripts/package-app.sh`로 만듭니다.
+
 ---
 
 ## 6. 실기기 테스트 체크리스트
@@ -520,6 +536,14 @@ mkdir -p "$TMP"
 cp scripts/install-helper.sh "$TMP/"
 cp dist/Akkim.app/Contents/Resources/akkim-helper "$TMP/"
 osascript -e 'do shell script "bash " & quoted form of "/private/var/tmp/akkim-install/install-helper.sh" & " install " & quoted form of "/private/var/tmp/akkim-install/akkim-helper" with administrator privileges'
+```
+
+Google Drive 동기화가 `.build` 안의 dSYM 번들을 0바이트 파일로 바꾸면 빌드가
+`cannot create bundle: Not a directory`로 실패할 수 있습니다. 이때는 빌드 경로를
+드라이브 밖으로 지정하세요.
+
+```bash
+AKKIM_BUILD_PATH=/private/var/tmp/akkim-build bash scripts/package-app.sh
 ```
 
 ---

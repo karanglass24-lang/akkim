@@ -90,6 +90,28 @@ final class StatusBarController: NSObject, NSPopoverDelegate {
         chargeLimit.stopPolling()
     }
 
+    #if DEBUG
+    /// Opens the popover so the app can snapshot its own view for documentation.
+    func openPopoverForCapture() {
+        guard let button = statusItem.button else { return }
+        popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
+        popover.contentViewController?.view.layoutSubtreeIfNeeded()
+    }
+
+    var popoverContentView: NSView? {
+        popover.contentViewController?.view
+    }
+
+    /// Re-fit the popover after content height changes (documentation capture).
+    func resizePopoverToFitContent() {
+        guard let view = popover.contentViewController?.view else { return }
+        view.layoutSubtreeIfNeeded()
+        let height = max(view.fittingSize.height, 200)
+        popover.contentSize = NSSize(width: 360, height: height)
+        view.layoutSubtreeIfNeeded()
+    }
+    #endif
+
     private func configureButton() {
         guard let button = statusItem.button else { return }
         button.target = self
@@ -145,7 +167,7 @@ final class StatusBarController: NSObject, NSPopoverDelegate {
         guard let s = sample else { return "--" }
         switch s.status {
         case .charging:
-            return String(format: "%.1f W", s.batteryWatts)
+            return String(format: "%.1f W", max(0, s.batteryWatts))
         case .acPaused:
             return s.stateOfChargePercent.map { "AC · \($0)%" } ?? "AC"
         case .discharging:

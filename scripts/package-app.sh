@@ -34,9 +34,10 @@ MACOS_DIR="${CONTENTS}/MacOS"
 RES_DIR="${CONTENTS}/Resources"
 
 echo "==> swift build -c ${CONFIG}"
-swift build -c "${CONFIG}" || { echo "ERR build failed"; exit 1; }
+BUILD_PATH="${AKKIM_BUILD_PATH:-.build}"
+swift build -c "${CONFIG}" --build-path "${BUILD_PATH}" || { echo "ERR build failed"; exit 1; }
 
-BUILD_DIR=".build/${CONFIG}"
+BUILD_DIR="$(swift build -c "${CONFIG}" --build-path "${BUILD_PATH}" --show-bin-path)"
 APP_BIN="${BUILD_DIR}/${APP_NAME}"
 HELPER_BIN="${BUILD_DIR}/akkim-helper"
 

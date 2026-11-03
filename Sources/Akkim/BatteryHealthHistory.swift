@@ -67,6 +67,24 @@ final class BatteryHealthHistory: ObservableObject {
         return samples.filter { $0.timestamp >= cutoff }
     }
 
+    #if DEBUG
+    /// In-memory samples so documentation screenshots show a readable trend.
+    /// Never written to disk and compiled out of release builds.
+    func seedPreviewData() {
+        let now = Date()
+        let design = samples.last?.designCapacitymAh ?? 8694
+        samples = (0..<21).map { index in
+            let time = now.addingTimeInterval(-Double(20 - index) * 36 * 3600)
+            let health = 78.0 - Double(index) * 0.08 + sin(Double(index) * 1.3) * 0.9
+            return BatteryHealthSample(
+                timestamp: time,
+                maxCapacitymAh: Int(Double(design) * health / 100.0),
+                designCapacitymAh: design
+            )
+        }
+    }
+    #endif
+
     private func prune(_ now: Date) {
         let cutoff = now.addingTimeInterval(-retention)
         samples.removeAll { $0.timestamp < cutoff }

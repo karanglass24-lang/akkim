@@ -167,7 +167,7 @@ struct MenuBarPanel: View {
                     MetricCard(
                         icon: "bolt.fill",
                         label: L10n.t(.charging),
-                        value: stream.latest.map { String(format: "%.1f W", $0.batteryWatts) } ?? "--",
+                        value: stream.latest.map { String(format: "%.1f W", max(0, $0.batteryWatts)) } ?? "--",
                         color: stream.latest?.status == .charging ? .green : .gray
                     )
                     MetricCard(
