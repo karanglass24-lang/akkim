@@ -580,11 +580,11 @@ EOF
 ### 9.2 저장소/배포
 
 - [x] 릴리스 워크플로 추가 (`.github/workflows/release.yml`, 태그 `v*` → zip + Release)
-- [x] 앱 버전 `CFBundleShortVersionString 1.0.0` / `CFBundleVersion 1` 확인
-- [ ] `git init` 및 `https://github.com/karanglass24-lang/akkim` push (인증 필요)
+- [x] 앱 버전 `CFBundleShortVersionString 1.0.1` / `CFBundleVersion 2`
+- [x] `git init` 및 `https://github.com/karanglass24-lang/akkim` push
 - [ ] 폴더명 `battery-limit` → `akkim` 정리 (선택)
-- [ ] 태그 푸시(`v1.0.0`) 후 Release 자산(`Akkim.zip`, `.sha256`) 확인
-- [ ] 고정 다운로드 URL 확인: `/releases/latest/download/Akkim.zip`
+- [x] 태그 푸시(`v1.0.0`, `v1.0.1`) 후 Release 자산(`Akkim.zip`, `.sha256`) 확인
+- [x] 고정 다운로드 URL 확인: `/releases/latest/download/Akkim.zip`
 - [ ] 경고 없는 배포가 필요하면 Developer ID 서명 + notarization
 
 ### 9.3 법무/브랜드
