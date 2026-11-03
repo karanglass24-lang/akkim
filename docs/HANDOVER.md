@@ -430,6 +430,15 @@ battery-limit/
 - 연동된 상태에서 앱 제한을 바꾸면 `ShortcutsBridge`가 OS 제한을 설정하고,
   헬퍼 설정도 같은 값으로 맞춥니다(오래된 헬퍼 제한이 AC를 끊는 충돌 방지).
 
+### 5.13 제한 상향 시 hold 해제 (2026-11-04)
+
+- 증상: 80%에서 85%로 올려도 충전이 재개되지 않음.
+- 원인: 세일링 히스테리시스가 이전 hold 상태를 유지해, SoC가 새 제한보다 낮아도
+  하한(제한-deadband)까지 떨어질 때까지 어댑터를 다시 연결하지 않았습니다.
+- 수정: 설정 제한이 **상향**되고 현재 SoC가 새 제한보다 낮으면 즉시 `allowCharging()`으로
+  hold를 해제합니다. (`lastConfiguredLimit` 추적)
+- 헬퍼 재설치 후 적용됩니다.
+
 ---
 
 ## 6. 실기기 테스트 체크리스트
@@ -647,7 +656,7 @@ EOF
 ### 9.2 저장소/배포
 
 - [x] 릴리스 워크플로 추가 (`.github/workflows/release.yml`, 태그 `v*` → zip + Release)
-- [x] 앱 버전 `CFBundleShortVersionString 1.4.0` / `CFBundleVersion 9`
+- [x] 앱 버전 `CFBundleShortVersionString 1.4.1` / `CFBundleVersion 10`
 - [x] `git init` 및 `https://github.com/karanglass24-lang/akkim` push
 - [ ] 폴더명 `battery-limit` → `akkim` 정리 (선택)
 - [x] 태그 푸시(`v1.0.0`, `v1.0.1`) 후 Release 자산(`Akkim.zip`, `.sha256`) 확인

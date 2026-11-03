@@ -366,6 +366,8 @@ var lastTempC: Double = -1
 /// When charging is allowed but the battery is not charging, macOS may be
 /// enforcing its own native Charge Limit. Track how long that lasts.
 var notChargingSince: Date?
+/// Last configured limit, so raising it can release an existing hold.
+var lastConfiguredLimit = -1
 
 /// Publishes what the daemon is doing so the app can explain the pause reason
 /// and hide unsupported controls (e.g. discharge without CHIE).
@@ -508,6 +510,16 @@ while true {
     // MARK: Charge limit (sailing / hard-stop)
     let upper = cfg.limit
     let lower = max(20, cfg.limit - cfg.deadband)
+
+    // Raising the limit must release a hold immediately, otherwise sailing
+    // hysteresis keeps the adapter off until SoC falls below the old lower bound.
+    if lastConfiguredLimit >= 0, cfg.limit > lastConfiguredLimit,
+       bat.soc < cfg.limit, holding {
+        holding = false
+        allowCharging()
+        log("limit raised \(lastConfiguredLimit)% -> \(cfg.limit)% -> release hold")
+    }
+    lastConfiguredLimit = cfg.limit
 
     if bat.soc >= upper {
         if !holding {
