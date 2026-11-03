@@ -19,6 +19,11 @@ final class ChargeLimitController: ObservableObject {
     /// Last published daemon state (`helper-state.json`), refreshed on a 5 s timer.
     @Published private(set) var helperStatus: HelperStatus?
     @Published private(set) var isTopUpActive = false
+    /// Charging is allowed but the pack is not charging while plugged in (likely
+    /// macOS's own Charge Limit). Set after a short grace period.
+    @Published private(set) var systemHoldSuspected = false
+
+    private var systemHoldSince: Date?
 
     var onOpenOnboarding: (() -> Void)?
 
@@ -92,6 +97,13 @@ final class ChargeLimitController: ObservableObject {
         limiter.syncTopUp(fromDaemon: status.topUp)
         isTopUpActive = limiter.topUpRequested
 
+        // The daemon owns the config file; align the toggle when the file changed
+        // from another path (e.g. helper rewritten topUp). Skipped right after a
+        // local write so a stale state file cannot flip the switch back.
+        if limiter.syncFromDaemon(enabled: status.enabled, limit: status.limit) {
+            state = (limiter.enabled && limiter.installed) ? .limited(limiter.limit) : .unlimited
+        }
+
         // The daemon reports CHIE availability; keep the UI toggle honest.
         if !status.chieAvailable, limiter.dischargeEnabled {
             limiter.setDischarge(false)
@@ -157,6 +169,20 @@ final class ChargeLimitController: ObservableObject {
             lastError = .failed(error.localizedDescription)
             await refresh()
         }
+    }
+
+    /// Called from the sample stream so the panel can warn without waiting for
+    /// the helper's 10-second state file.
+    func updateSystemHold(suspected: Bool) {
+        guard suspected else {
+            systemHoldSince = nil
+            if systemHoldSuspected { systemHoldSuspected = false }
+            return
+        }
+        if systemHoldSince == nil { systemHoldSince = Date() }
+        let elapsed = Date().timeIntervalSince(systemHoldSince ?? Date())
+        let value = elapsed >= 30
+        if systemHoldSuspected != value { systemHoldSuspected = value }
     }
 
     func setSailingMode(_ value: Bool) {
@@ -242,6 +268,7 @@ final class ChargeLimitController: ObservableObject {
         case .topUp: return .reasonTopUp
         case .discharge: return .reasonDischarge
         case .adapterOff: return .reasonAdapterOff
+        case .systemHold: return .reasonSystemHold
         case .charging, .off, .noBattery: return nil
         }
     }

@@ -70,6 +70,8 @@ enum LKey {
     case reasonTopUp
     case reasonDischarge
     case reasonAdapterOff
+    case reasonSystemHold
+    case systemHoldHint
 
     // MARK: Status line
     case statusCharging
@@ -232,6 +234,10 @@ extension LKey {
         case .reasonTopUp:              return ("Topping up to 100%", "100%까지 만충전 중")
         case .reasonDischarge:          return ("Discharging to the limit", "제한값까지 방전 중")
         case .reasonAdapterOff:         return ("Adapter not connected", "어댑터가 연결되지 않음")
+        case .reasonSystemHold:         return ("macOS is holding the charge", "macOS가 충전을 보류 중")
+        case .systemHoldHint:
+            return ("The system Charge Limit looks lower than this app's limit. Set it in Battery settings.",
+                    "시스템 충전 제한이 앱 제한보다 낮을 수 있습니다. 배터리 설정에서 확인하세요.")
 
         // Status line
         case .statusCharging:           return ("Charging", "충전 중")

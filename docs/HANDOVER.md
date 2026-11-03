@@ -31,7 +31,7 @@ SoC 차트, 사유 기반 알림**을 추가했습니다.
 | 안정성(P0) | JSON 원자적 쓰기, 데몬 last-good-config(약 60초), 권한 775/664 자동 교정, 서명 순서, 알림 게이팅, 구 데몬(`com.batterylimit.helper`) 제거 |
 | UX(P1) | 관리자 인증 비블로킹(`Process.terminationHandler`), 제한 on/off 토글, `shortcuts list` 프로브 캐싱 |
 | 이번 배치 | 헬퍼 상태 파일, 일시정지 사유, 원샷 만충전, 열 보호, 우클릭 빠른 메뉴, 메뉴바 표시 옵션, SoC 스파크라인, 알림 세분화 |
-| 지역화 | `LKey` **118개**, `LKey.text` exhaustive switch |
+| 지역화 | `LKey` **120개**, `LKey.text` exhaustive switch |
 | 패키징 | `scripts/package-app.sh`, ad-hoc 서명, MIT 고지 파일 번들 포함 |
 | CI | `.github/workflows/build.yml` (macos-14, build → package → signature/bundle 검증 → artifact) |
 
@@ -163,7 +163,7 @@ battery-limit/
 │   ├── MenuBarPanel.swift        # 팝오버 UI
 │   ├── SettingsView.swift
 │   ├── HistoryChartView.swift    # 전력 + SoC 차트
-│   ├── Localization.swift        # LKey 118개 (ko/en)
+│   ├── Localization.swift        # LKey 120개 (ko/en)
 │   ├── MenuBarIcon.swift         # 메뉴바 배터리 글리프(AppKit 직접 그리기)
 │   ├── BatteryHealthHistory.swift # 건강도 샘플 저장/추이
 │   ├── BatteryHealthChart.swift   # Swift Charts 건강도 영역 그래프
@@ -409,6 +409,19 @@ battery-limit/
 - `docs/images/icon.png`(1024)는 README 상단에 사용.
 - `scripts/package-app.sh`가 `.icns`를 번들 `Contents/Resources`로 복사합니다.
 
+### 5.11 macOS 자체 충전 제한 감지 + 토글 동기화 (2026-11-04)
+
+- macOS 26.4+에는 시스템 자체 **Charge Limit**이 있습니다. 시스템 제한이 앱 제한보다 낮으면
+  (예: 시스템 80%, 앱 85%) 앱이 충전을 허용해도 OS가 충전을 시작하지 않습니다.
+- 헬퍼가 `externalConnected && !isCharging && soc < limit` 상태가 30초 이상 지속되면
+  `reason:"systemHold"`를 발행합니다. 패널은 이때 "macOS가 충전을 보류 중"과
+  **시스템 설정 열기** 버튼을 표시합니다.
+- 앱에서도 1초 샘플로 같은 상태를 감지합니다(30초 유예). 헬퍼를 재설치하지 않아도 안내가 뜹니다.
+- 토글 상태 동기화: 헬퍼 상태 파일이 최대 10초 늦게 갱신되므로, 로컬 설정을 쓴 뒤 15초 동안은
+  데몬 상태로 `enabled/limit`을 되돌리지 않습니다 (`lastConfigWriteAt`).
+- 해결 방법(사용자): 시스템 설정 → 배터리 → 충전(ⓘ) → **Charge Limit**을 앱 제한과 같거나
+  높게 설정하거나 100%로 변경.
+
 ---
 
 ## 6. 실기기 테스트 체크리스트
@@ -490,8 +503,8 @@ battery-limit/
 ### 6.9 로그인/종료
 
 - [ ] 로그인 시 자동 실행 (`/Applications`에 둔 경우)
-- [ ] 앱 종료 시 충전 복구 (현재 설계: 종료 시 `enabled:false` 기록)
-- [ ] 재실행 시 제한이 꺼진 상태로 시작하는지 확인 (의도된 동작인지 결정 필요 — 11장)
+- [ ] 앱 종료 후에도 제한이 유지되는지 확인 (헬퍼가 계속 적용)
+- [ ] 앱 재실행 시 제한이 켜진 상태로 복원되는지 확인
 
 ### 6.10 1차 실기기 확인 결과 (2026-11-03)
 
@@ -626,7 +639,7 @@ EOF
 ### 9.2 저장소/배포
 
 - [x] 릴리스 워크플로 추가 (`.github/workflows/release.yml`, 태그 `v*` → zip + Release)
-- [x] 앱 버전 `CFBundleShortVersionString 1.3.0` / `CFBundleVersion 7`
+- [x] 앱 버전 `CFBundleShortVersionString 1.3.1` / `CFBundleVersion 8`
 - [x] `git init` 및 `https://github.com/karanglass24-lang/akkim` push
 - [ ] 폴더명 `battery-limit` → `akkim` 정리 (선택)
 - [x] 태그 푸시(`v1.0.0`, `v1.0.1`) 후 Release 자산(`Akkim.zip`, `.sha256`) 확인
@@ -652,7 +665,7 @@ EOF
 
 - **UI 문자열**: 반드시 `Sources/Akkim/Localization.swift`의 `LKey`에 추가.
   `LKey.text`는 exhaustive switch이므로 번역 누락 시 컴파일 실패.
-  현재 118개.
+  현재 120개.
 - **리소스 없음**: `.lproj`를 쓰지 않으므로 `Package.swift`에 `resources:`를 추가하지 말 것.
 - **동시성**: `SMCChargeLimiter`, `ChargeLimitController`, `AppSettings`,
   `StatusBarController`, `SampleStream`은 `@MainActor`.
@@ -677,8 +690,8 @@ EOF
    필요합니다. 방전 모드와 열 보호는 실기기 확인이 필수.
 5. **구버전 헬퍼** — 새 앱 + 구 헬퍼 조합에서는 상태 파일이 없어 경고가 뜹니다.
    재설치 필요.
-6. **앱 종료 시 제한 해제** — `AppDelegate.applicationWillTerminate`가 `disable()`을 호출해
-   `enabled:false`를 기록합니다. "앱을 끄면 제한도 꺼진다"는 정책이 맞는지 결정해야 합니다.
+6. **앱 종료 시 제한 유지** — `applicationWillTerminate`에서 `disable()`을 호출하지 않습니다.
+   앱을 끄면 헬퍼가 마지막 설정을 계속 적용합니다. 사용자가 패널에서 직접 꺼야 복구됩니다.
 7. **상태 파일 최신성** — 데몬은 10초 주기라 UI 반영에 최대 10초 지연이 있습니다.
 8. **top-up 경합** — 앱과 데몬이 같은 설정 파일을 원자적으로 쓰므로, 아주 드물게
    마지막 writer가 이길 수 있습니다. 5초 동기화로 수렴합니다.

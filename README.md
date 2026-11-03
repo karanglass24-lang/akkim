@@ -182,6 +182,8 @@ and hide unsupported controls:
   is disabled automatically (the helper reports `chieAvailable:false`).
 - **Top-up and heat protection** require the SMC helper (the Shortcuts-only path
   has no daemon loop to enforce them).
+- **Quitting the app keeps the limit enforced** (the helper daemon keeps the last
+  config). Turn the limit off in the panel to restore normal charging.
 - **Upgrading**: reinstall the helper once after updating the app
   (`bash scripts/install-helper.sh install …`) so the daemon starts publishing
   `helper-state.json`; otherwise the panel shows "helper is not responding".

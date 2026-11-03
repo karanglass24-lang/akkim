@@ -134,6 +134,14 @@ final class StatusBarController: NSObject, NSPopoverDelegate {
                     self.notifyIfNeeded(sample: sample)
                     self.healthHistory.record(sample)
                     self.energyUsage.record(sample)
+
+                    if case .limited(let limit) = self.chargeLimit.state,
+                       let soc = sample.stateOfChargePercent, soc < limit,
+                       sample.externalConnected, !sample.isCharging {
+                        self.chargeLimit.updateSystemHold(suspected: true)
+                    } else {
+                        self.chargeLimit.updateSystemHold(suspected: false)
+                    }
                 }
             }
             .store(in: &bag)

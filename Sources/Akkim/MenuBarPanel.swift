@@ -565,6 +565,24 @@ struct MenuBarPanel: View {
                     }
                     .padding(.horizontal, 16)
                 }
+
+                if chargeLimit.helperStatus?.reason == .systemHold || chargeLimit.systemHoldSuspected {
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack(spacing: 6) {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                                .foregroundStyle(.orange)
+                            Text(L10n.t(.systemHoldHint))
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                        }
+                        Button(L10n.t(.openSystemSettings)) {
+                            chargeLimit.openSystemBatterySettings()
+                        }
+                        .buttonStyle(.link)
+                        .font(.caption2)
+                    }
+                    .padding(.horizontal, 16)
+                }
                 }
                 .padding(.bottom, 8)
             }

@@ -16,6 +16,7 @@ struct HelperStatus: Equatable {
         case calibration
         case limit
         case charging
+        case systemHold
     }
 
     let timestamp: Date

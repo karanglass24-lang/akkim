@@ -111,6 +111,7 @@ struct Battery {
     let fullyCharged: Bool
     let adapterPresent: Bool
     let externalConnected: Bool
+    let isCharging: Bool
     let tempC: Double?
 }
 
@@ -124,12 +125,14 @@ func readBattery() -> Battery? {
     let soc = (d["CurrentCapacity"] as? NSNumber)?.intValue ?? -1
     let full = (d["FullyCharged"] as? Bool) ?? false
     let external = (d["ExternalConnected"] as? Bool) ?? false
+    let charging = (d["IsCharging"] as? Bool) ?? false
     let tempC: Double? = readBatteryTemperature(fallback: d)
     return Battery(
         soc: soc,
         fullyCharged: full,
         adapterPresent: adapterPhysicallyPresent(fallback: d),
         externalConnected: external,
+        isCharging: charging,
         tempC: tempC
     )
 }
@@ -360,6 +363,9 @@ var loggedNoCHIE = false
 var lastFullCharge = readLastFullCharge()
 var lastSoc = -1
 var lastTempC: Double = -1
+/// When charging is allowed but the battery is not charging, macOS may be
+/// enforcing its own native Charge Limit. Track how long that lasts.
+var notChargingSince: Date?
 
 /// Publishes what the daemon is doing so the app can explain the pause reason
 /// and hide unsupported controls (e.g. discharge without CHIE).
@@ -530,6 +536,21 @@ while true {
         }
         allowCharging() // periodic re-assert
     }
-    publishState(cfg, holding ? "limit" : "charging")
+    if holding {
+        notChargingSince = nil
+        publishState(cfg, "limit")
+    } else if bat.externalConnected, !bat.isCharging, bat.soc < upper {
+        // We allow charging but the pack is not charging while plugged in.
+        // macOS 26.4+ has its own Charge Limit that can be lower than ours.
+        if notChargingSince == nil { notChargingSince = Date() }
+        if let since = notChargingSince, Date().timeIntervalSince(since) >= 30 {
+            publishState(cfg, "systemHold")
+        } else {
+            publishState(cfg, "charging")
+        }
+    } else {
+        notChargingSince = nil
+        publishState(cfg, "charging")
+    }
     Thread.sleep(forTimeInterval: 10)
 }

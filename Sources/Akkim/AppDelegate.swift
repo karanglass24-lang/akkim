@@ -119,11 +119,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationWillTerminate(_ notification: Notification) {
         container.stop()
         container.energyUsage.flush()
-        // On exit, restore normal charging via the helper (fail-safe).
-        if container.smcLimiter.installed {
-            container.smcLimiter.cancelTopUp()
-            container.smcLimiter.disable()
-        }
+        // The helper daemon keeps enforcing the last config after the app quits.
+        // Turning the limit off here made the toggle look like it disabled itself
+        // on every restart; the user can turn it off explicitly instead.
     }
 
     private func openSettings() {

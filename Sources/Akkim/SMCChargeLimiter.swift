@@ -36,6 +36,8 @@ final class SMCChargeLimiter: ObservableObject {
     /// When the user asked for a top-up. The daemon polls every 10 s, so a
     /// "topUp: false" state file seen right after the request is simply stale.
     private var topUpRequestedAt: Date?
+    /// Last time we wrote the config; used to ignore stale daemon state briefly.
+    private var lastConfigWriteAt: Date?
 
     init() {
         reload()
@@ -151,6 +153,25 @@ final class SMCChargeLimiter: ObservableObject {
     }
 
     /// Set the limit while enabled.
+    /// Aligns in-memory flags with the daemon's published state.
+    /// Returns true when something changed.
+    @discardableResult
+    func syncFromDaemon(enabled: Bool, limit: Int) -> Bool {
+        if let written = lastConfigWriteAt, Date().timeIntervalSince(written) < 15 {
+            return false
+        }
+        var changed = false
+        if self.enabled != enabled {
+            self.enabled = enabled
+            changed = true
+        }
+        if self.limit != limit, ChargeLimitConstants.steps.contains(limit) {
+            self.limit = limit
+            changed = true
+        }
+        return changed
+    }
+
     func setLimit(_ percent: Int) {
         limit = percent
         if enabled { writeConfig() }
@@ -275,6 +296,7 @@ final class SMCChargeLimiter: ObservableObject {
     // MARK: Internal
 
     private func writeConfig() {
+        lastConfigWriteAt = Date()
         try? FileManager.default.createDirectory(atPath: configDir, withIntermediateDirectories: true)
         let obj: [String: Any] = [
             "schemaVersion": 1,
