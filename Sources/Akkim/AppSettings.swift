@@ -62,6 +62,40 @@ enum PanelSection: String, CaseIterable, Identifiable {
     }
 }
 
+/// Top-level tab in the popover.
+enum PanelTab: String, CaseIterable, Identifiable {
+    case charge
+    case monitor
+
+    var id: String { rawValue }
+
+    var titleKey: LKey {
+        switch self {
+        case .charge: return .tabCharge
+        case .monitor: return .tabMonitor
+        }
+    }
+}
+
+/// Tabs in the settings window.
+enum SettingsTab: String, CaseIterable, Identifiable {
+    case general
+    case charging
+    case panel
+    case about
+
+    var id: String { rawValue }
+
+    var titleKey: LKey {
+        switch self {
+        case .general: return .general
+        case .charging: return .chargeLimit
+        case .panel: return .panelSections
+        case .about: return .about
+        }
+    }
+}
+
 /// 사용자 설정 (UserDefaults 기반, 메인 액터에서 동기화)
 @MainActor
 final class AppSettings: ObservableObject {
@@ -91,6 +125,8 @@ enum EnergyChartMode: String, CaseIterable, Identifiable {
     /// Panel sections the user has collapsed with the header chevron.
     @Published var collapsedSections: Set<PanelSection> = []
     @Published var energyChartMode: EnergyChartMode = .days
+    @Published var panelTab: PanelTab = .charge
+    @Published var settingsTab: SettingsTab = .general
 
     private let defaults = UserDefaults.standard
 
@@ -114,6 +150,8 @@ enum EnergyChartMode: String, CaseIterable, Identifiable {
             "panelVisibleSections": PanelSection.allCases.map(\.rawValue),
             "panelCollapsedSections": [String](),
             "energyChartMode": EnergyChartMode.days.rawValue,
+            "panelTab": PanelTab.charge.rawValue,
+            "settingsTab": SettingsTab.general.rawValue,
         ] as [String: Any])
     }
 
@@ -145,6 +183,14 @@ enum EnergyChartMode: String, CaseIterable, Identifiable {
            let mode = EnergyChartMode(rawValue: raw) {
             energyChartMode = mode
         }
+        if let raw = defaults.string(forKey: "panelTab"),
+           let tab = PanelTab(rawValue: raw) {
+            panelTab = tab
+        }
+        if let raw = defaults.string(forKey: "settingsTab"),
+           let tab = SettingsTab(rawValue: raw) {
+            settingsTab = tab
+        }
         // Sections added in a later version start visible for existing installs.
         if defaults.integer(forKey: "panelSectionsVersion") < 2 {
             visibleSections.insert(.energy)
@@ -167,6 +213,8 @@ enum EnergyChartMode: String, CaseIterable, Identifiable {
         defaults.set(visibleSections.map(\.rawValue), forKey: "panelVisibleSections")
         defaults.set(collapsedSections.map(\.rawValue), forKey: "panelCollapsedSections")
         defaults.set(energyChartMode.rawValue, forKey: "energyChartMode")
+        defaults.set(panelTab.rawValue, forKey: "panelTab")
+        defaults.set(settingsTab.rawValue, forKey: "settingsTab")
     }
 
     // MARK: Panel sections

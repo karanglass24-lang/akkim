@@ -31,7 +31,7 @@ SoC 차트, 사유 기반 알림**을 추가했습니다.
 | 안정성(P0) | JSON 원자적 쓰기, 데몬 last-good-config(약 60초), 권한 775/664 자동 교정, 서명 순서, 알림 게이팅, 구 데몬(`com.batterylimit.helper`) 제거 |
 | UX(P1) | 관리자 인증 비블로킹(`Process.terminationHandler`), 제한 on/off 토글, `shortcuts list` 프로브 캐싱 |
 | 이번 배치 | 헬퍼 상태 파일, 일시정지 사유, 원샷 만충전, 열 보호, 우클릭 빠른 메뉴, 메뉴바 표시 옵션, SoC 스파크라인, 알림 세분화 |
-| 지역화 | `LKey` **127개**, `LKey.text` exhaustive switch |
+| 지역화 | `LKey` **133개**, `LKey.text` exhaustive switch |
 | 패키징 | `scripts/package-app.sh`, ad-hoc 서명, MIT 고지 파일 번들 포함 |
 | CI | `.github/workflows/build.yml` (macos-14, build → package → signature/bundle 검증 → artifact) |
 
@@ -163,7 +163,7 @@ battery-limit/
 │   ├── MenuBarPanel.swift        # 팝오버 UI
 │   ├── SettingsView.swift
 │   ├── HistoryChartView.swift    # 전력 + SoC 차트
-│   ├── Localization.swift        # LKey 127개 (ko/en)
+│   ├── Localization.swift        # LKey 133개 (ko/en)
 │   ├── MenuBarIcon.swift         # 메뉴바 배터리 글리프(AppKit 직접 그리기)
 │   ├── BatteryHealthHistory.swift # 건강도 샘플 저장/추이
 │   ├── BatteryHealthChart.swift   # Swift Charts 건강도 영역 그래프
@@ -439,6 +439,15 @@ battery-limit/
   hold를 해제합니다. (`lastConfiguredLimit` 추적)
 - 헬퍼 재설치 후 적용됩니다.
 
+### 5.14 패널 2탭 + 설정 4탭 (2026-11-04)
+
+- 패널: **충전 / 모니터** 탭 추가 (`AppSettings.panelTab`, 기본 `charge`).
+  충전 제한이 헤더 바로 아래에 오도록 재배치했습니다.
+- 설정: **일반 / 충전 제한 / 패널 섹션 / 정보** 탭 (`AppSettings.settingsTab`).
+  완료 버튼은 하단에 고정.
+- 팝오버 높이: 탭 전환 시 `updatePopoverSize()`로 다시 맞춥니다.
+- 차트 라벨이 잘리지 않도록 HistoryChartView에 내부 여백 + clip을 적용했습니다.
+
 ---
 
 ## 6. 실기기 테스트 체크리스트
@@ -656,7 +665,7 @@ EOF
 ### 9.2 저장소/배포
 
 - [x] 릴리스 워크플로 추가 (`.github/workflows/release.yml`, 태그 `v*` → zip + Release)
-- [x] 앱 버전 `CFBundleShortVersionString 1.4.1` / `CFBundleVersion 10`
+- [x] 앱 버전 `CFBundleShortVersionString 1.5.0` / `CFBundleVersion 11`
 - [x] `git init` 및 `https://github.com/karanglass24-lang/akkim` push
 - [ ] 폴더명 `battery-limit` → `akkim` 정리 (선택)
 - [x] 태그 푸시(`v1.0.0`, `v1.0.1`) 후 Release 자산(`Akkim.zip`, `.sha256`) 확인
@@ -682,7 +691,7 @@ EOF
 
 - **UI 문자열**: 반드시 `Sources/Akkim/Localization.swift`의 `LKey`에 추가.
   `LKey.text`는 exhaustive switch이므로 번역 누락 시 컴파일 실패.
-  현재 127개.
+  현재 133개.
 - **리소스 없음**: `.lproj`를 쓰지 않으므로 `Package.swift`에 `resources:`를 추가하지 말 것.
 - **동시성**: `SMCChargeLimiter`, `ChargeLimitController`, `AppSettings`,
   `StatusBarController`, `SampleStream`은 `@MainActor`.

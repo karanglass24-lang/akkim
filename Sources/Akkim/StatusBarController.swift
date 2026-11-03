@@ -83,10 +83,18 @@ final class StatusBarController: NSObject, NSPopoverDelegate {
                 self.applyDisplay(sample: self.stream.latest)
             }
             .store(in: &bag)
+
+        settings.$panelTab
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _ in
+                DispatchQueue.main.async { self?.updatePopoverSize() }
+            }
+            .store(in: &bag)
     }
 
     func popoverWillShow(_ notification: Notification) {
         chargeLimit.startPolling()
+        updatePopoverSize()
     }
 
     func popoverDidClose(_ notification: Notification) {
@@ -105,13 +113,9 @@ final class StatusBarController: NSObject, NSPopoverDelegate {
         popover.contentViewController?.view
     }
 
-    /// Re-fit the popover after content height changes (documentation capture).
+    /// Re-fit the popover after a tab/section change.
     func resizePopoverToFitContent() {
-        guard let view = popover.contentViewController?.view else { return }
-        view.layoutSubtreeIfNeeded()
-        let height = max(view.fittingSize.height, 200)
-        popover.contentSize = NSSize(width: 360, height: height)
-        view.layoutSubtreeIfNeeded()
+        updatePopoverSize()
     }
     #endif
 
@@ -187,6 +191,18 @@ final class StatusBarController: NSObject, NSPopoverDelegate {
         case .desktop:
             return s.systemLoadWatts.map { String(format: "%.0f W", $0) } ?? "--"
         }
+    }
+
+    private func updatePopoverSize() {
+        guard let view = popover.contentViewController?.view else { return }
+        view.layoutSubtreeIfNeeded()
+        let maxHeight = (NSScreen.main?.visibleFrame.height ?? 900) - 40
+        // Charts report a slightly small fitting size; give the monitor tab more room.
+        let extra: CGFloat = settings.panelTab == .monitor ? 180 : 40
+        let measured = view.fittingSize.height + extra
+        let height = min(max(measured, 300), maxHeight)
+        popover.contentSize = NSSize(width: 360, height: height)
+        view.layoutSubtreeIfNeeded()
     }
 
     // MARK: Right-click quick actions

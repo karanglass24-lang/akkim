@@ -19,30 +19,68 @@ struct MenuBarPanel: View {
         VStack(alignment: .leading, spacing: 0) {
             headerSection
             Divider()
-            if settings.isSectionVisible(.power) {
-                metricsSection
-                Divider()
+            panelTabPicker
+            Divider()
+
+            switch settings.panelTab {
+            case .charge:
+                if settings.isSectionVisible(.limit) {
+                    chargeLimitSection
+                    Divider()
+                } else {
+                    sectionsHiddenHint
+                }
+            case .monitor:
+                let monitorVisible = settings.isSectionVisible(.power)
+                    || settings.isSectionVisible(.energy)
+                    || settings.isSectionVisible(.health)
+                    || settings.isSectionVisible(.history)
+                if monitorVisible {
+                    if settings.isSectionVisible(.power) {
+                        metricsSection
+                        Divider()
+                    }
+                    if settings.isSectionVisible(.energy) {
+                        energySection
+                        Divider()
+                    }
+                    if settings.isSectionVisible(.health) {
+                        batteryHealthSection
+                        Divider()
+                    }
+                    if settings.isSectionVisible(.history) {
+                        historySection
+                        Divider()
+                    }
+                } else {
+                    sectionsHiddenHint
+                }
             }
-            if settings.isSectionVisible(.energy) {
-                energySection
-                Divider()
-            }
-            if settings.isSectionVisible(.health) {
-                batteryHealthSection
-                Divider()
-            }
-            if settings.isSectionVisible(.history) {
-                historySection
-                Divider()
-            }
-            if settings.isSectionVisible(.limit) {
-                chargeLimitSection
-                Divider()
-            }
+
             footerSection
         }
         .frame(width: 360)
         .background(VisualEffectView(material: .popover))
+    }
+
+    private var panelTabPicker: some View {
+        Picker("", selection: $settings.panelTab) {
+            ForEach(PanelTab.allCases) { tab in
+                Text(L10n.t(tab.titleKey)).tag(tab)
+            }
+        }
+        .pickerStyle(.segmented)
+        .labelsHidden()
+        .padding(.horizontal, 16)
+        .padding(.vertical, 8)
+    }
+
+    private var sectionsHiddenHint: some View {
+        Text(L10n.t(.sectionsHiddenHint))
+            .font(.caption2)
+            .foregroundStyle(.secondary)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
     }
 
     // MARK: - Header

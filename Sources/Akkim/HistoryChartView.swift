@@ -67,7 +67,9 @@ struct HistoryChartView: View {
                 .chartYScale(domain: powerDomain)
             }
         }
-        .frame(height: 64)
+        .padding(.vertical, 8)
+        .frame(height: 80)
+        .clipped()
     }
 
     // MARK: State of charge (%)
@@ -110,7 +112,9 @@ struct HistoryChartView: View {
                     }
                 }
                 .chartYScale(domain: 0.0...100.0)
-                .frame(height: 44)
+                .padding(.vertical, 8)
+                .frame(height: 60)
+                .clipped()
             }
         }
     }

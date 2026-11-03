@@ -116,6 +116,12 @@ enum LKey {
     case systemLimitSteps
     case openShortcutsApp
     case recheck
+    case tabCharge
+    case tabMonitor
+    case about
+    case sectionsHiddenHint
+    case versionFormat
+    case manual
     case panelSections
     case panelSectionsDetail
     case panelSectionCollapseHelp
@@ -301,6 +307,14 @@ extension LKey {
                     "Shortcuts → 새 단축어 → ‘Set Battery Charge Limit’ 동작 추가 → 값은 ‘단축어 입력’ → 이름을 SetBatteryChargeLimit로 저장하세요.")
         case .openShortcutsApp:         return ("Open Shortcuts", "Shortcuts 열기")
         case .recheck:                  return ("Check again", "다시 확인")
+        case .tabCharge:                return ("Charge", "충전")
+        case .tabMonitor:               return ("Monitor", "모니터")
+        case .about:                    return ("About", "정보")
+        case .sectionsHiddenHint:
+            return ("No sections are visible. Turn them on in Settings › Panel sections.",
+                    "표시할 섹션이 없습니다. 설정 › 패널 섹션에서 켜세요.")
+        case .versionFormat:            return ("Version %@ (%@)", "버전 %@ (%@)")
+        case .manual:                   return ("User manual", "사용 설명서")
         case .panelSections:            return ("Panel sections", "패널 섹션")
         case .panelSectionsDetail:
             return ("Choose which sections appear in the popover. Click a section title to collapse or expand it.",

@@ -7,10 +7,11 @@ A macOS menu bar app that limits battery charging and monitors charging / batter
 The name 아낌 (*akkim*) is the Korean noun form of "to save / to cherish" (아끼다) — the idea of sparing the battery rather than keeping it topped up.
 
 <p align="center">
-  <img src="docs/images/panel.png" width="300" alt="Akkim menu bar panel">
-  <img src="docs/images/settings.png" width="340" alt="Akkim settings">
+  <img src="docs/images/panel.png" width="260" alt="Akkim charge panel">
+  <img src="docs/images/panel-monitor.png" width="260" alt="Akkim monitor panel">
+  <img src="docs/images/settings.png" width="320" alt="Akkim settings">
 </p>
-<p align="center"><sub>Menu bar panel and settings</sub></p>
+<p align="center"><sub>Charge tab · Monitor tab · Settings</sub></p>
 
 > **Continuing on a Mac?** See [docs/HANDOVER.md](docs/HANDOVER.md) for the full handover:
 > current status, build/install steps in order, file IPC schemas, a device test checklist,
