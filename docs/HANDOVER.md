@@ -149,7 +149,7 @@ battery-limit/
 │   └── install-helper.sh         # LaunchDaemon 설치/제거, 구 데몬 마이그레이션
 ├── .github/workflows/build.yml   # macOS CI (컴파일/서명/번들 검증)
 ├── Sources/Akkim/
-│   ├── AkkimApp.swift            # @main, 알림 권한
+│   ├── AppMain.swift             # AppKit @main 엔트리포인트
 │   ├── AppDelegate.swift         # 상태바/설정 창, 종료 처리
 │   ├── AppContainer.swift        # 의존성 조립
 │   ├── AppSettings.swift         # UserDefaults 설정 + MenuBarDisplay
@@ -392,6 +392,14 @@ battery-limit/
   빌드가 실패할 수 있습니다. 이 프로젝트는 화면 상태도 `AppSettings`(@Published)로
   관리합니다.
 
+### 5.9 설정 창 유령 수정 (2026-11-04)
+
+- **원인**: SwiftUI `Settings { EmptyView() }` 씬이 별도의 빈 "아낌 Settings" 창을 만들었고,
+  설정 창을 열었다 닫으면 이 빈 창이 유령처럼 남았습니다.
+- **수정**: SwiftUI App/Scene을 제거하고 `Sources/Akkim/AppMain.swift`의 AppKit `@main`으로 전환.
+  알림 권한 요청은 `AppDelegate.applicationDidFinishLaunching`으로 이동했습니다.
+- **검증**: 설정 열기 → 닫기 → 다시 열기 후 `NSApp.windows`에 상태바 창과 설정 창만 존재.
+
 ---
 
 ## 6. 실기기 테스트 체크리스트
@@ -609,7 +617,7 @@ EOF
 ### 9.2 저장소/배포
 
 - [x] 릴리스 워크플로 추가 (`.github/workflows/release.yml`, 태그 `v*` → zip + Release)
-- [x] 앱 버전 `CFBundleShortVersionString 1.2.0` / `CFBundleVersion 5`
+- [x] 앱 버전 `CFBundleShortVersionString 1.2.1` / `CFBundleVersion 6`
 - [x] `git init` 및 `https://github.com/karanglass24-lang/akkim` push
 - [ ] 폴더명 `battery-limit` → `akkim` 정리 (선택)
 - [x] 태그 푸시(`v1.0.0`, `v1.0.1`) 후 Release 자산(`Akkim.zip`, `.sha256`) 확인

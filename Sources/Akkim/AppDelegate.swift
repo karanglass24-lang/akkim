@@ -4,6 +4,7 @@
 
 import AppKit
 import SwiftUI
+import UserNotifications
 
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
@@ -18,6 +19,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
+        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { granted, _ in
+            if granted {
+                print("Notification authorization granted")
+            }
+        }
         container.start()
 
         container.chargeLimitController.onOpenOnboarding = { [weak self] in
@@ -89,6 +95,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         guard let png = rep.representation(using: .png, properties: [:]) else { return }
         try? png.write(to: URL(fileURLWithPath: path))
     }
+
     #endif
 
     /// macOS 26.4+ 네이티브 경로에서 Shortcuts 액션을 안내합니다.
