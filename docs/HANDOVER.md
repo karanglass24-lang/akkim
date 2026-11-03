@@ -31,7 +31,7 @@ SoC 차트, 사유 기반 알림**을 추가했습니다.
 | 안정성(P0) | JSON 원자적 쓰기, 데몬 last-good-config(약 60초), 권한 775/664 자동 교정, 서명 순서, 알림 게이팅, 구 데몬(`com.batterylimit.helper`) 제거 |
 | UX(P1) | 관리자 인증 비블로킹(`Process.terminationHandler`), 제한 on/off 토글, `shortcuts list` 프로브 캐싱 |
 | 이번 배치 | 헬퍼 상태 파일, 일시정지 사유, 원샷 만충전, 열 보호, 우클릭 빠른 메뉴, 메뉴바 표시 옵션, SoC 스파크라인, 알림 세분화 |
-| 지역화 | `LKey` **120개**, `LKey.text` exhaustive switch |
+| 지역화 | `LKey` **127개**, `LKey.text` exhaustive switch |
 | 패키징 | `scripts/package-app.sh`, ad-hoc 서명, MIT 고지 파일 번들 포함 |
 | CI | `.github/workflows/build.yml` (macos-14, build → package → signature/bundle 검증 → artifact) |
 
@@ -163,7 +163,7 @@ battery-limit/
 │   ├── MenuBarPanel.swift        # 팝오버 UI
 │   ├── SettingsView.swift
 │   ├── HistoryChartView.swift    # 전력 + SoC 차트
-│   ├── Localization.swift        # LKey 120개 (ko/en)
+│   ├── Localization.swift        # LKey 127개 (ko/en)
 │   ├── MenuBarIcon.swift         # 메뉴바 배터리 글리프(AppKit 직접 그리기)
 │   ├── BatteryHealthHistory.swift # 건강도 샘플 저장/추이
 │   ├── BatteryHealthChart.swift   # Swift Charts 건강도 영역 그래프
@@ -422,6 +422,14 @@ battery-limit/
 - 해결 방법(사용자): 시스템 설정 → 배터리 → 충전(ⓘ) → **Charge Limit**을 앱 제한과 같거나
   높게 설정하거나 100%로 변경.
 
+### 5.12 시스템 충전 제한 연동 UI (2026-11-04)
+
+- macOS 26.4+의 Charge Limit은 `powerd` entitlement로 강제되어 공개 API/CLI가 없습니다.
+  유일한 공개 경로는 Shortcuts의 **Set Battery Charge Limit** 액션입니다.
+- 설정 › **시스템 충전 제한** 그룹 추가: 연동 여부, 안내, Shortcuts 열기, 다시 확인.
+- 연동된 상태에서 앱 제한을 바꾸면 `ShortcutsBridge`가 OS 제한을 설정하고,
+  헬퍼 설정도 같은 값으로 맞춥니다(오래된 헬퍼 제한이 AC를 끊는 충돌 방지).
+
 ---
 
 ## 6. 실기기 테스트 체크리스트
@@ -639,7 +647,7 @@ EOF
 ### 9.2 저장소/배포
 
 - [x] 릴리스 워크플로 추가 (`.github/workflows/release.yml`, 태그 `v*` → zip + Release)
-- [x] 앱 버전 `CFBundleShortVersionString 1.3.1` / `CFBundleVersion 8`
+- [x] 앱 버전 `CFBundleShortVersionString 1.4.0` / `CFBundleVersion 9`
 - [x] `git init` 및 `https://github.com/karanglass24-lang/akkim` push
 - [ ] 폴더명 `battery-limit` → `akkim` 정리 (선택)
 - [x] 태그 푸시(`v1.0.0`, `v1.0.1`) 후 Release 자산(`Akkim.zip`, `.sha256`) 확인
@@ -665,7 +673,7 @@ EOF
 
 - **UI 문자열**: 반드시 `Sources/Akkim/Localization.swift`의 `LKey`에 추가.
   `LKey.text`는 exhaustive switch이므로 번역 누락 시 컴파일 실패.
-  현재 120개.
+  현재 127개.
 - **리소스 없음**: `.lproj`를 쓰지 않으므로 `Package.swift`에 `resources:`를 추가하지 말 것.
 - **동시성**: `SMCChargeLimiter`, `ChargeLimitController`, `AppSettings`,
   `StatusBarController`, `SampleStream`은 `@MainActor`.

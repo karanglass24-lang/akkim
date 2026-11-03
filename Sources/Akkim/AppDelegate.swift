@@ -128,6 +128,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if settingsWindow == nil {
             let settingsView = SettingsView()
                 .environmentObject(container.settings)
+                .environmentObject(container.chargeLimitController)
             let window = NSWindow(
                 contentRect: NSRect(x: 0, y: 0, width: 420, height: 700),
                 styleMask: [.titled, .closable, .resizable],

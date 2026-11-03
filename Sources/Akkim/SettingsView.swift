@@ -7,6 +7,7 @@ import AppKit
 
 struct SettingsView: View {
     @EnvironmentObject private var settings: AppSettings
+    @EnvironmentObject private var chargeLimit: ChargeLimitController
 
     var body: some View {
         ScrollView {
@@ -58,6 +59,37 @@ struct SettingsView: View {
                         }
                         .pickerStyle(.menu)
                         .frame(width: 150)
+                    }
+                }
+            }
+
+            GroupBox(L10n.t(.systemLimit)) {
+                VStack(alignment: .leading, spacing: 10) {
+                    HStack(spacing: 6) {
+                        Image(systemName: chargeLimit.capability.bridgeConfigured
+                              ? "checkmark.circle.fill" : "exclamationmark.circle")
+                            .foregroundStyle(chargeLimit.capability.bridgeConfigured ? .green : .orange)
+                        Text(chargeLimit.capability.bridgeConfigured
+                             ? L10n.t(.systemLimitLinked)
+                             : L10n.t(.systemLimitNotLinked))
+                        Spacer()
+                        Button(L10n.t(.recheck)) {
+                            Task { await chargeLimit.refresh() }
+                        }
+                        .font(.caption)
+                    }
+                    Text(L10n.t(.systemLimitDetail))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    if !chargeLimit.capability.bridgeConfigured {
+                        Text(L10n.t(.systemLimitSteps))
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                        Button(L10n.t(.openShortcutsApp)) {
+                            if let url = URL(string: "shortcuts://") {
+                                NSWorkspace.shared.open(url)
+                            }
+                        }
                     }
                 }
             }
@@ -148,6 +180,9 @@ struct SettingsView: View {
         .padding(20)
         }
         .frame(width: 420, height: 700)
+        .onAppear {
+            Task { await chargeLimit.refresh() }
+        }
         .onChange(of: settings.launchAtLogin) { _ in
             settings.applyLaunchAtLogin()
         }

@@ -56,6 +56,8 @@ The `release` workflow builds on a macOS runner, verifies the bundle, zips it as
   Totals cover time while the app is running (sleep and quit gaps are ignored).
 
 ### Charging Limit
+- **Linking the macOS 26.4+ system Charge Limit** through a one-time Shortcuts
+  shortcut lets the app update the system limit itself — no trip to System Settings
 - Apple Silicon Mac (M1–M4), macOS 13+
 - macOS 26.4+: native battery charge limit bridged via a Shortcuts action (`SetBatteryChargeLimit`)
 - Fallback: SMC charge-control keys (`CHTE` / `CHIE`) via a root LaunchDaemon helper

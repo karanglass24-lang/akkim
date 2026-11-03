@@ -155,6 +155,11 @@ final class ChargeLimitController: ObservableObject {
             bridgeProbe = nil
             if capability.platformSupportsSet, let bridge, await bridgeAvailable() {
                 try await bridge.set(percent: percent)
+                // Keep the helper in sync too: on CHIE machines a stale helper limit
+                // would keep cutting AC even though the system limit changed.
+                if limiter.installed {
+                    if limiter.enabled { limiter.setLimit(percent) } else { await limiter.enable(limit: percent) }
+                }
                 // Shortcuts URL scheme does not return a result synchronously; give the
                 // system a moment and refresh from the source of truth.
                 try? await Task.sleep(nanoseconds: 1_500_000_000)
