@@ -14,10 +14,10 @@
 
 ## 0. 한 줄 요약
 
-Apple Silicon Mac용 메뉴바 앱. SMC `CHTE`/`CHIE`를 제어하는 root LaunchDaemon 헬퍼로
-충전 제한·세일링·방전·만충전·열 보호를 수행하고, 앱은 전력/건강도/차트/알림을 보여줍니다.
-최신 배치에서 **헬퍼 상태 IPC, 원샷 만충전, 열 보호, 메뉴바 우클릭 메뉴, 표시 옵션,
-SoC 차트, 사유 기반 알림**을 추가했습니다.
+Apple Silicon Mac용 메뉴바 앱. 충전 제한은 macOS 26.4+의 네이티브 Charge Limit(PowerUI)을
+직접 제어하고, 헬퍼가 있을 때는 SMC `CHTE`/`CHIE`로 세일링·방전·만충전·열 보호를 수행합니다.
+앱은 전력/건강도/차트/알림을 보여주며, 패널 UI는 macOS 26의 **Liquid Glass**로 구성됩니다.
+배포는 **PKG 인스톨러 + 자체 업데이터**이며, 현재 버전은 **1.8.1 (build 22)** 입니다.
 
 ---
 
@@ -32,14 +32,18 @@ SoC 차트, 사유 기반 알림**을 추가했습니다.
 | UX(P1) | 관리자 인증 비블로킹(`Process.terminationHandler`), 제한 on/off 토글, `shortcuts list` 프로브 캐싱 |
 | 이번 배치 | 헬퍼 상태 파일, 일시정지 사유, 원샷 만충전, 열 보호, 우클릭 빠른 메뉴, 메뉴바 표시 옵션, SoC 스파크라인, 알림 세분화 |
 | 지역화 | `LKey` **153개**, `LKey.text` exhaustive switch |
-| 패키징 | `scripts/package-app.sh`, ad-hoc 서명, MIT 고지 파일 번들 포함 |
-| CI | `.github/workflows/build.yml` (macos-14, build → package → signature/bundle 검증 → artifact) |
+| 시스템 제어 | macOS 26.4+ 네이티브 Charge Limit 직접 제어(PowerUI), Shortcuts/SMC 폴백 |
+| 배포 | 자체 업데이터 + `Akkim.pkg`(앱·헬퍼 일괄 설치) + `Akkim.zip` + `.sha256` |
+| UI | Liquid Glass(패널 전면, macOS 26+), 패널 2탭 / 설정 4탭, 한·영 |
+| 현재 버전 | **1.8.1 (build 22)** — `/Applications/Akkim.app` 실행 중 |
+| CI | `.github/workflows/build.yml` (macos-26, build → package → signature/bundle 검증 → artifact) |
 
 ### 1.2 아직 검증되지 않은 것
 
-- 실제 SMC `CHTE`/`CHIE` 동작, 열 보호, 만충전, 방전
-- 메뉴바 우클릭 이벤트 전달
-- GitHub 저장소 push 및 CI 실행
+- Liquid Glass의 실제 시각적 만족도(사용자 육안 확인 필요 — 스냅샷으로는 검증 불가)
+- Developer ID 서명/notarization (현재 ad-hoc → 첫 실행 경고)
+- AlDente Pro 잔여물 정리(사용자 sudo 작업, 미확인)
+- 일부 실기기 항목(6장): 방전, 열 보호 등 기기별 SMC 차이
 
 ### 1.3 Mac 빌드 검증 결과 (2026-11-03)
 
@@ -147,15 +151,24 @@ battery-limit/
 ├── ui-mockup.html                # UI 참고용 목업
 ├── scripts/
 │   ├── package-app.sh            # release build → dist/Akkim.app → ad-hoc 서명
+│   ├── build-pkg.sh              # dist/Akkim.pkg (앱 payload + postinstall 헬퍼 설치)
 │   └── install-helper.sh         # LaunchDaemon 설치/제거, 구 데몬 마이그레이션
-├── .github/workflows/build.yml   # macOS CI (컴파일/서명/번들 검증)
+├── .github/workflows/
+│   ├── build.yml                 # macOS CI (macos-26, 컴파일/서명/번들 검증)
+│   └── release.yml               # 태그 v* → pkg + zip + sha256 → GitHub Release
+├── docs/
+│   ├── HANDOVER.md               # 이 문서
+│   └── MANUAL.md                 # 사용 설명서(한국어)
 ├── Sources/Akkim/
 │   ├── AppMain.swift             # AppKit @main 엔트리포인트
-│   ├── AppDelegate.swift         # 상태바/설정 창, 종료 처리
+│   ├── AppDelegate.swift         # 상태바/설정 창, 종료 처리, 디버그 훅
 │   ├── AppContainer.swift        # 의존성 조립
 │   ├── AppSettings.swift         # UserDefaults 설정 + MenuBarDisplay
 │   ├── ChargeLimitController.swift
 │   ├── ChargeLimitTypes.swift
+│   ├── SystemChargeLimit.swift   # PowerUI 다이렉트 제어(dlopen + SEL 검사)
+│   ├── UpdateChecker.swift       # GitHub Releases 자체 업데이터(SHA-256 검증)
+│   ├── GlassStyle.swift          # Liquid Glass 헬퍼(26+ / 머티리얼 폴백)
 │   ├── SMCChargeLimiter.swift    # 설정 파일 쓰기, 헬퍼 설치, topUp/heat
 │   ├── HelperStatus.swift        # helper-state.json 모델 + mtime 캐시
 │   ├── ShortcutBridge.swift      # macOS 26.4+ Shortcuts 경로
@@ -557,6 +570,37 @@ zip 수동 설치의 문제(Downloads 방치 → App Translocation, 헬퍼 별�
   반드시 유지) + `.sha256`.
 - 로컬 검증: `pkgutil --expand-full` 로 Payload/Scripts/postinstall 확인.
 
+### 5.23 Liquid Glass UI (2026-11-05, v1.8.0)
+
+macOS 26의 Liquid Glass를 패널에 처음 적용했다.
+
+- `Sources/Akkim/GlassStyle.swift`
+  - `akkimGlass(cornerRadius:)` — 26+에서 `.glassEffect(.regular, in:)` +
+    `quaternary` 헤어라인 스트로크. 미만에서는 `.ultraThinMaterial` 폴백.
+  - `akkimGlassButton()` — 26+ `GlassButtonStyle`, 미만 `.bordered`.
+- 최초 적용 범위: 전력 MetricCard 3종 + 만충전 버튼.
+- 스트로크를 얹은 이유: 다크 팝오버 위에서 유리가 거의 보이지 않아
+  카드 경계가 사라지기 때문.
+- **CI 실패 → 러너 교체**: `macos-14` 러너의 SDK에는 `glassEffect` /
+  `GlassButtonStyle`이 없어 빌드 실패. `build.yml`·`release.yml` 모두
+  `runs-on: macos-26` 으로 변경한 뒤 통과.
+
+### 5.24 패널 전면 유리 + 1.8.1 (2026-11-05)
+
+"리퀴드 글래스가 안 된 것 같다"는 피드백으로 원인을 재확인했다. 코드는
+정상 적용 중이었고, **범위가 카드 3곳뿐이라 눈에 띄지 않았던 것**.
+
+- `akkimPanelBackdrop()` 추가: 26+에서 패널 배경 전체를
+  `Color.clear.glassEffect(.regular, in: RoundedRectangle(cornerRadius: 12))`,
+  미만에서는 `VisualEffectView(material: .popover)`.
+- `MenuBarPanel`의 `.background(VisualEffectView(material: .popover))` 를
+  `.akkimPanelBackdrop()` 로 교체 → 컨트롤 센터 느낌의 전면 유리.
+- **스크린샷 파이프라인 경고**: `cacheDisplay` 는 유리를 합성하지 못한다.
+  유리 적용 후 `--screenshot` 결과가 **거의 빈 PNG(≈3.4KB)** 가 되는 것이
+  오히려 "유리가 켜졌다"는 반증이다. README용 패널 캡처는 `screencapture`
+  또는 사용자 화면으로 대체해야 한다.
+- 버전 1.8.0(21) → **1.8.1(22)**, 릴리스 자산 3종 재확인(latest 다운로드 200).
+
 ---
 
 ## 6. 실기기 테스트 체크리스트
@@ -768,40 +812,27 @@ EOF
 
 - [x] Mac에서 `swift build` / `swift build -c release` 통과 (2026-11-03)
 - [x] `bash scripts/package-app.sh` + `codesign --verify` 통과
-- [ ] 실기기 체크리스트 6장 수행
-- [ ] GitHub push → CI 녹색 확인
+- [ ] 실기기 체크리스트 6장 수행 (일부 항목 미완 — 6.10 참고)
+- [x] GitHub push → CI 녹색 확인 (`macos-26` 러너)
 
 ### 9.2 저장소/배포
 
-- [x] 릴리스 워크플로 추가 (`.github/workflows/release.yml`, 태그 `v*` → zip + Release)
-- [x] 앱 버전 `CFBundleShortVersionString 1.8.0` / `CFBundleVersion 21`
-- [x] Liquid Glass UI (2026-11-05): `Sources/Akkim/GlassStyle.swift`의
-  `akkimGlass(cornerRadius:)` — macOS 26+에서 `.glassEffect(.regular, in:)` +
-  `quaternary` 스트로크, 미만에서는 `.ultraThinMaterial` 폴백.
+- [x] 릴리스 워크플로 추가 (`.github/workflows/release.yml`, 태그 `v*` → pkg + zip + Release)
+- [x] 러너 `macos-14` → **`macos-26`** (Liquid Glass API 필요, build/release 공통)
+- [x] 앱 버전 `CFBundleShortVersionString 1.8.1` / `CFBundleVersion 22`
+- [x] Liquid Glass UI 1차(1.8.0): `GlassStyle.swift`의 `akkimGlass(cornerRadius:)`
+  — 26+ `.glassEffect(.regular, in:)` + `quaternary` 스트로크, 미만 `.ultraThinMaterial`.
   `akkimGlassButton()` — 26+ `GlassButtonStyle`, 미만 `.bordered`.
-  적용: 전력 MetricCard 3종, 만충전 버튼. 다크 팝오버에서 유리가 거의 안 보여
-  카드 구분이 사라지는 것을 막기 위해 스트로크를 얹음.
-  `--screenshot`의 `cacheDisplay`는 프라이빗 Glass 합성을 못 하므로 스냅샷에는
-  유리 효과가 보이지 않는다(레이아웃 확인용).
-  참고: 충전 80→85는 실측 ~1%/분 + macOS 재충전 지연 120초 → 몇 분 걸린다.
-  아이콘이 80%에 멈춰 보이는 것은 정상 동작이며 성능 이상이 아니다.
-- [x] 1.8.1 Liquid Glass 확장 (2026-11-05): 패널 배경을 `akkimPanelBackdrop()`로
-  교체 — 26+에서 패널 전체가 `glassEffect(.regular)`, 미만에서는 popover 머티리얼.
-  **스크린샷 파이프라인 주의**: `cacheDisplay`는 유리를 합성하지 못하므로
-  패널 스냅샷(`akkim-panel.png`)은 거의 빈 PNG가 된다 — 유리 적용을 확인하는
-  반대 증거로 쓸 수 있고, README 패널 캡처는 `screencapture` 등 다른 수단이 필요.
-  유리가 안 보인다고 보고받으면(1.8.0) 배경을 전면 유리로 확대해 해결.
-- [x] 경고 없는 배포가 필요하면 Developer ID 서명 + notarization (검토 필요)
-
----
-
-## 6. 실기기 테스트 체크리스트
-
+  적용: 전력 MetricCard 3종, 만충전 버튼.
+- [x] Liquid Glass 확장(1.8.1): `akkimPanelBackdrop()` 로 **패널 배경 전체**를 유리로.
+  미만은 `.popover` 머티리얼 폴백. 상세는 5.23/5.24.
+- [x] 릴리스 `v1.0.0` ~ `v1.8.1` 발행, 에셋(pkg/zip/sha256) 및 latest URL 200 확인
+- [x] 자체 업데이터 실증(1.6.0 → 1.6.1 다운로드·검증·교체·재시작)
+- [x] 고정 URL: `/releases/latest/download/Akkim.{pkg,zip}`
 - [x] `git init` 및 `https://github.com/karanglass24-lang/akkim` push
+- [x] 태그 푸시 후 Release 자산 확인 (`v1.0.0` ~ `v1.8.1`)
 - [ ] 폴더명 `battery-limit` → `akkim` 정리 (선택)
-- [x] 태그 푸시(`v1.0.0`, `v1.0.1`) 후 Release 자산(`Akkim.zip`, `.sha256`) 확인
-- [x] 고정 다운로드 URL 확인: `/releases/latest/download/Akkim.zip`
-- [ ] 경고 없는 배포가 필요하면 Developer ID 서명 + notarization
+- [ ] Developer ID 서명 + notarization (경고 없는 배포가 필요해지면)
 
 ### 9.3 법무/브랜드
 
@@ -831,6 +862,21 @@ EOF
 - **의존성**: 서드파티 없음. Apple 프레임워크만 사용.
 - **네트워크/텔레메트리**: 없음. 추가하지 말 것.
 - **서명**: 개인 사용은 ad-hoc. 번들 내 헬퍼를 **먼저** 서명한 뒤 앱 번들 서명.
+- **빌드 경로**: Google Drive 동기화 폴더에서 `.build` 를 만들면 `bundle` 생성이
+  실패할 수 있다. 항상 `AKKIM_BUILD_PATH=/private/var/tmp/akkim-build` 를 붙인다.
+  ```bash
+  AKKIM_BUILD_PATH=/private/var/tmp/akkim-build swift build
+  AKKIM_BUILD_PATH=/private/var/tmp/akkim-build bash scripts/package-app.sh
+  ```
+- **Liquid Glass**: 새 UI는 `GlassStyle.swift` 헬퍼(`akkimGlass`,
+  `akkimGlassButton`, `akkimPanelBackdrop`)만 사용한다. `glassEffect` 를 직접
+  호출하지 말 것(폴백 누락). 배경을 유리로 덮으면 `--screenshot` 이 빈 이미지가
+  되므로, 레이아웃 검증은 유리 제거 상태나 `screencapture` 로 한다.
+- **CI 러너**: Liquid Glass API 때문에 `macos-26` 이상이 필수다. `macos-14` 로
+  되돌리면 릴리스 빌드가 깨진다. (5.23 참고)
+- **버전 올리기**: `Resources/Info.plist` 의 `CFBundleShortVersionString` 과
+  `CFBundleVersion` 을 함께 올리고, `git tag vX.Y.Z` → push 하면 릴리스 워크플로가
+  pkg·zip·sha256 을 자동 첨부한다.
 
 ---
 
@@ -838,8 +884,9 @@ EOF
 
 1. **컴파일 검증 완료 (2026-11-03)** — macOS 27.0.1 / Swift 6.4.2에서 debug·release 빌드,
    번들 패키징, ad-hoc 서명 검증까지 통과했습니다. 수정 내역은 5.1 참고.
-2. **Swift Charts** — macOS 27 SDK에서는 정상 컴파일됩니다. CI(macos-14, macOS 14 SDK)에서도
-   통과하는지는 push 후 확인이 필요합니다.
+2. **Swift Charts / CI** — macOS 27 SDK에서 정상 컴파일. CI는 `macos-26`
+   (`build.yml`, `release.yml`)에서 통과한다. `macos-14` 는 Liquid Glass API가
+   없어 실패하므로 사용하지 말 것.
 3. **`Process.terminationHandler`** — Swift 5 모드(tools 5.9)에서는 경고 없이 컴파일됩니다.
    Swift 6 언어 모드로 올릴 때 `done.signal()` 캡처를 다시 점검해야 합니다.
 4. **실제 SMC 동작** — 이 테스트 기기(macOS 27.0.1)에는 `CHTE`가 없어 `CHIE` 폴백
@@ -852,10 +899,19 @@ EOF
 7. **상태 파일 최신성** — 데몬은 10초 주기라 UI 반영에 최대 10초 지연이 있습니다.
 8. **top-up 경합** — 앱과 데몬이 같은 설정 파일을 원자적으로 쓰므로, 아주 드물게
    마지막 writer가 이길 수 있습니다. 5초 동기화로 수렴합니다.
+9. **충전 속도** — 80 → 85 상향은 실측 약 1%/분이고, macOS 자체 재충전 지연이
+   120초(`PostChargeWaitSeconds`)라 몇 분 걸린다. 아이콘이 잠시 멈춰 보이는 것은
+   정상이며 성능 문제가 아니다.
+10. **유리 효과 검증** — 정적 스냅샷(`cacheDisplay`)으로는 Liquid Glass를 볼 수
+    없다. 시각 확인은 실제 팝오버를 열어 육안으로만 가능하다.
 
 ---
 
 ## 12. 참고
+
+- 최신 릴리스: <https://github.com/karanglass24-lang/akkim/releases/latest>
+- 고정 다운로드: `/releases/latest/download/Akkim.pkg` (설치),
+  `/releases/latest/download/Akkim.zip` (자동 업데이터)
 
 - 원본/파생: ChargeWatching (MIT, Copyright (c) 2026 TY-teo)
 - SMC 참고: batt, SMCKit

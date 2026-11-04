@@ -44,7 +44,9 @@ git push origin v1.0.0
 ```
 
 The `release` workflow builds on a macOS runner, verifies the bundle, zips it as
-`Akkim.zip`, and attaches it (plus a SHA-256 file) to the GitHub Release.
+`Akkim.zip`, builds `Akkim.pkg`, and attaches both (plus a SHA-256 file) to the
+GitHub Release. The runner must be `macos-26`: Liquid Glass APIs are not in older
+macOS SDKs.
 
 ## Features
 
@@ -109,6 +111,14 @@ The `release` workflow builds on a macOS runner, verifies the bundle, zips it as
   switch, so adding a key without both translations does not compile
 - Error messages shown in the panel are localized too (`ChargeLimitError: LocalizedError`)
 
+### Design
+- **Liquid Glass** panel on macOS 26+ (`Glass.regular` over the whole backdrop),
+  with an `.ultraThinMaterial` / popover-material fallback on older systems
+- Two panel tabs (Charge / Monitor) and four settings tabs (General, Charge limit,
+  Panel sections, About); sections in the panel collapse and remember their state
+- Note: the built-in `--screenshot` hook cannot composite Liquid Glass, so its panel
+  snapshot comes out blank on macOS 26+. That is expected, not a rendering bug.
+
 ## Requirements
 
 - macOS 13+, Apple Silicon (M1–M4)
@@ -137,7 +147,7 @@ scheme (app) and the `akkim-helper` product (helper).
 
 ### Option C — Compile check in CI
 
-`.github/workflows/build.yml` runs on a `macos-14` (Apple Silicon) runner for every
+`.github/workflows/build.yml` runs on a `macos-26` (Apple Silicon) runner for every
 push and pull request: `swift build` (debug + release), `scripts/package-app.sh`,
 and an assertion that the bundle contains `LICENSE`, `THIRD-PARTY-NOTICES.md`, and
 the expected `Info.plist` values. The packaged `dist/Akkim.app` is uploaded as a
