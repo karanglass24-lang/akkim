@@ -32,6 +32,10 @@ signed, so the first launch may be blocked (right-click → Open, or
 `xattr -dr com.apple.quarantine /Applications/Akkim.app`). The root helper still asks
 for admin authorization the first time the charge limit is enabled.
 
+After that, **updates are automatic**: Akkim checks GitHub Releases twice a day,
+verifies the published SHA-256, replaces itself in place and relaunches.
+Settings › About has a manual "Check for updates" button.
+
 To publish a new build:
 
 ```bash
@@ -61,6 +65,8 @@ The `release` workflow builds on a macOS runner, verifies the bundle, zips it as
   Totals cover time while the app is running (sleep and quit gaps are ignored).
 
 ### Charging Limit
+- **Self-updating**: checks GitHub Releases, verifies the SHA-256 checksum,
+  swaps the bundle in place and relaunches (no admin prompt)
 - **Direct control of the macOS 26.4+ system Charge Limit** — Akkim keeps the
   system limit in sync with its own (including 100% during a top-up or
   calibration), so charging is never held back by a stale system value

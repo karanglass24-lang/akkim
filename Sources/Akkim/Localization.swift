@@ -170,6 +170,19 @@ enum LKey {
     case errShortcutMissing
     case errSystemControlUnavailable
     case errSystemControlFailed
+    case update
+    case updateCheck
+    case updateChecking
+    case updateLatest
+    case updateAvailableFormat
+    case updateInstall
+    case updateInstalling
+    case updateRestartNote
+    case updateNeedsManual
+    case updateFailedFormat
+    case errUpdateChecksumFile
+    case errUpdateChecksum
+    case errUpdateNoBundle
 }
 
 extension LKey {
@@ -408,6 +421,32 @@ extension LKey {
         case .errSystemControlFailed:
             return ("Could not change the macOS charge limit.",
                     "macOS 충전 제한을 변경하지 못했습니다.")
+        case .update:                   return ("Update", "업데이트")
+        case .updateCheck:              return ("Check for updates", "업데이트 확인")
+        case .updateChecking:           return ("Checking…", "확인 중…")
+        case .updateLatest:             return ("You're up to date.", "최신 버전을 사용 중입니다.")
+        case .updateAvailableFormat:
+            return ("Akkim %@ is available.", "아낌 %@이(가) 있습니다.")
+        case .updateInstall:            return ("Update now", "지금 업데이트")
+        case .updateInstalling:
+            return ("Downloading and installing…", "다운로드 및 설치 중…")
+        case .updateRestartNote:
+            return ("Akkim quits, replaces itself and relaunches.",
+                    "업데이트하면 앱이 종료 후 다시 시작됩니다.")
+        case .updateFailedFormat:
+            return ("Update failed: %@", "업데이트 실패: %@")
+        case .updateNeedsManual:
+            return ("This copy can't be replaced in place — download it from GitHub.",
+                    "이 위치의 앱은 교체할 수 없습니다. GitHub에서 받아 설치하세요.")
+        case .errUpdateChecksumFile:
+            return ("The published checksum file could not be read.",
+                    "배포된 체크섬 파일을 읽을 수 없습니다.")
+        case .errUpdateChecksum:
+            return ("The downloaded file failed its checksum test.",
+                    "받은 파일의 체크섬이 맞지 않습니다.")
+        case .errUpdateNoBundle:
+            return ("The downloaded archive contains no app.",
+                    "받은 압축 파일에 앱이 없습니다.")
         }
     }
 }

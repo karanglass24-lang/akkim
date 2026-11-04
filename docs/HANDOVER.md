@@ -31,7 +31,7 @@ SoC 차트, 사유 기반 알림**을 추가했습니다.
 | 안정성(P0) | JSON 원자적 쓰기, 데몬 last-good-config(약 60초), 권한 775/664 자동 교정, 서명 순서, 알림 게이팅, 구 데몬(`com.batterylimit.helper`) 제거 |
 | UX(P1) | 관리자 인증 비블로킹(`Process.terminationHandler`), 제한 on/off 토글, `shortcuts list` 프로브 캐싱 |
 | 이번 배치 | 헬퍼 상태 파일, 일시정지 사유, 원샷 만충전, 열 보호, 우클릭 빠른 메뉴, 메뉴바 표시 옵션, SoC 스파크라인, 알림 세분화 |
-| 지역화 | `LKey` **140개**, `LKey.text` exhaustive switch |
+| 지역화 | `LKey` **153개**, `LKey.text` exhaustive switch |
 | 패키징 | `scripts/package-app.sh`, ad-hoc 서명, MIT 고지 파일 번들 포함 |
 | CI | `.github/workflows/build.yml` (macos-14, build → package → signature/bundle 검증 → artifact) |
 
@@ -163,7 +163,7 @@ battery-limit/
 │   ├── MenuBarPanel.swift        # 팝오버 UI
 │   ├── SettingsView.swift
 │   ├── HistoryChartView.swift    # 전력 + SoC 차트
-│   ├── Localization.swift        # LKey 140개 (ko/en)
+│   ├── Localization.swift        # LKey 153개 (ko/en)
 │   ├── MenuBarIcon.swift         # 메뉴바 배터리 글리프(AppKit 직접 그리기)
 │   ├── BatteryHealthHistory.swift # 건강도 샘플 저장/추이
 │   ├── BatteryHealthChart.swift   # Swift Charts 건강도 영역 그래프
@@ -492,6 +492,24 @@ Shortcuts 없이 macOS Charge Limit을 바꿀 수 있는 경로를 찾아 적용
   `IsCharging=0 → 1`(79%→80%). `availableChargeLimits` = 80/85/90/95/100.
 - 디버그 훅: `Akkim --system-limit 85` 로 직접 검증 가능(`AppDelegate`).
 
+### 5.19 자체 업데이트 (2026-11-04)
+
+`Sources/Akkim/UpdateChecker.swift` — Sparkle 없이 구현했습니다(의존성/서명 부담 없음).
+
+- **확인**: `GET https://github.com/karanglass24-lang/akkim/releases/latest`
+  → 리다이렉트 최종 URL의 `tag` (`v1.7.1`)를 버전으로 사용. API 토큰·레이트리밋 없음.
+  12시간 캐시(`UserDefaults.updateLastCheck`).
+- **설치**: `Akkim.zip` + `Akkim.zip.sha256` 다운로드 → CryptoKit SHA-256 대조 →
+  `ditto -x -k` 풀기 → `/bin/sh` 스크립트가 **프로세스 종료를 기다렸다** 제자리 교체 후
+  `open`으로 재실행. 실패 시 원본 복구.
+- **진입점**: 실행 시 자동(`checkOnLaunch`), 설정 › 정보(수동 확인/설치),
+  패널 푸터의 주황색 업데이트 링크(설정 › 정보로 이동).
+- **디버그 훅**: `Akkim --update-check` / `Akkim --update-install`
+  (`AppDelegate`, 설치 성공 시 `NSApp.terminate` 후 스크립트가 교체).
+- **실측**: 1.6.0 빌드에서 `--update-install` → v1.6.1 zip 받음 → 체크섬 통과 →
+  `/private/var/tmp/.../Akkim.app` 이 1.6.1로 교체되고 자동 재실행 확인.
+- 설치 위치가 쓸 수 없으면(`isWritableFile` 실패) 다운로드 페이지를 엽니다.
+
 ---
 
 ## 6. 실기기 테스트 체크리스트
@@ -709,7 +727,7 @@ EOF
 ### 9.2 저장소/배포
 
 - [x] 릴리스 워크플로 추가 (`.github/workflows/release.yml`, 태그 `v*` → zip + Release)
-- [x] 앱 버전 `CFBundleShortVersionString 1.6.1` / `CFBundleVersion 16`
+- [x] 앱 버전 `CFBundleShortVersionString 1.7.0` / `CFBundleVersion 17`
 - [x] `git init` 및 `https://github.com/karanglass24-lang/akkim` push
 - [ ] 폴더명 `battery-limit` → `akkim` 정리 (선택)
 - [x] 태그 푸시(`v1.0.0`, `v1.0.1`) 후 Release 자산(`Akkim.zip`, `.sha256`) 확인
@@ -735,7 +753,7 @@ EOF
 
 - **UI 문자열**: 반드시 `Sources/Akkim/Localization.swift`의 `LKey`에 추가.
   `LKey.text`는 exhaustive switch이므로 번역 누락 시 컴파일 실패.
-  현재 140개.
+  현재 153개.
 - **리소스 없음**: `.lproj`를 쓰지 않으므로 `Package.swift`에 `resources:`를 추가하지 말 것.
 - **동시성**: `SMCChargeLimiter`, `ChargeLimitController`, `AppSettings`,
   `StatusBarController`, `SampleStream`은 `@MainActor`.

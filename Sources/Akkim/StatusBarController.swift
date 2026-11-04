@@ -16,6 +16,7 @@ final class StatusBarController: NSObject, NSPopoverDelegate {
     private let settings: AppSettings
     private let healthHistory: BatteryHealthHistory
     private let energyUsage: EnergyUsageStore
+    private let updateChecker: UpdateChecker
     private let onQuit: () -> Void
     private let onOpenSettings: () -> Void
     private var bag: Set<AnyCancellable> = []
@@ -26,12 +27,13 @@ final class StatusBarController: NSObject, NSPopoverDelegate {
     /// 동일한 종류의 알림이 너무 자주 울리지 않도록 최소 간격(초)을 둡니다.
     private let notificationMinInterval: TimeInterval = 60
 
-    init(stream: SampleStream, chargeLimit: ChargeLimitController, settings: AppSettings, healthHistory: BatteryHealthHistory, energyUsage: EnergyUsageStore, onQuit: @escaping () -> Void, onOpenSettings: @escaping () -> Void) {
+    init(stream: SampleStream, chargeLimit: ChargeLimitController, settings: AppSettings, healthHistory: BatteryHealthHistory, energyUsage: EnergyUsageStore, updateChecker: UpdateChecker, onQuit: @escaping () -> Void, onOpenSettings: @escaping () -> Void) {
         self.stream = stream
         self.chargeLimit = chargeLimit
         self.settings = settings
         self.healthHistory = healthHistory
         self.energyUsage = energyUsage
+        self.updateChecker = updateChecker
         self.onQuit = onQuit
         self.onOpenSettings = onOpenSettings
         self.statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
@@ -49,6 +51,7 @@ final class StatusBarController: NSObject, NSPopoverDelegate {
             .environmentObject(settings)
             .environmentObject(healthHistory)
             .environmentObject(energyUsage)
+            .environmentObject(updateChecker)
         let hosting = NSHostingController(rootView: panel)
         hosting.sizingOptions = [.preferredContentSize]
         popover.contentViewController = hosting

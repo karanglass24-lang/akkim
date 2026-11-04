@@ -8,6 +8,7 @@ import AppKit
 struct SettingsView: View {
     @EnvironmentObject private var settings: AppSettings
     @EnvironmentObject private var chargeLimit: ChargeLimitController
+    @EnvironmentObject private var updater: UpdateChecker
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -303,6 +304,10 @@ struct SettingsView: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
 
+                updateSection
+
+                Divider()
+
                 Link("GitHub",
                      destination: URL(string: "https://github.com/karanglass24-lang/akkim")!)
                 Link(L10n.t(.manual),
@@ -312,6 +317,65 @@ struct SettingsView: View {
                     .font(.caption2)
                     .foregroundStyle(.secondary)
             }
+        }
+    }
+
+    // MARK: - Update
+
+    private var updateSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Divider()
+
+            HStack {
+                Text(L10n.t(.update))
+                    .font(.subheadline.weight(.medium))
+                Spacer()
+                Button(L10n.t(.updateCheck)) {
+                    Task { await updater.check() }
+                }
+                .disabled(updater.phase == .checking || isUpdating)
+            }
+
+            if let text = updateStatusText {
+                Text(text)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            if updater.isUpdateAvailable, !isUpdating {
+                Button(L10n.t(.updateInstall)) {
+                    Task { await updater.install() }
+                }
+                .keyboardShortcut("u", modifiers: .command)
+                Text(L10n.t(.updateRestartNote))
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                if !updater.canReplaceInPlace {
+                    Link(L10n.t(.updateNeedsManual), destination: UpdateChecker.latestURL)
+                        .font(.caption2)
+                }
+            }
+        }
+    }
+
+    private var isUpdating: Bool {
+        updater.phase == .downloading || updater.phase == .verifying || updater.phase == .installing
+    }
+
+    private var updateStatusText: String? {
+        switch updater.phase {
+        case .idle:
+            return nil
+        case .checking:
+            return L10n.t(.updateChecking)
+        case .upToDate:
+            return L10n.t(.updateLatest)
+        case .available(let version):
+            return String(format: L10n.t(.updateAvailableFormat), version)
+        case .downloading, .verifying, .installing:
+            return L10n.t(.updateInstalling)
+        case .failed(let message):
+            return String(format: L10n.t(.updateFailedFormat), message)
         }
     }
 

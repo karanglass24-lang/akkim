@@ -18,6 +18,24 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // Debug hooks: `Akkim --update-check` / `--update-install` exercise the
+        // self-updater without going through the UI.
+        if CommandLine.arguments.contains("--update-check")
+            || CommandLine.arguments.contains("--update-install") {
+            let checker = container.updateChecker
+            let install = CommandLine.arguments.contains("--update-install")
+            Task { @MainActor in
+                await checker.check()
+                print("update-check -> \(checker.phase) available=\(checker.availableVersion ?? "-")")
+                guard install else { exit(0) }
+                await checker.install()
+                // On success `install()` terminates the app first.
+                print("update-install -> \(checker.phase)")
+                exit(1)
+            }
+            return
+        }
+
         // Debug hook: `Akkim --system-limit 85` writes the macOS Charge Limit
         // directly and prints the value read back. Used to verify the PowerUI
         // path without the Shortcuts setup.
@@ -40,6 +58,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
         }
         container.start()
+        container.updateChecker.checkOnLaunch()
 
         container.chargeLimitController.onOpenOnboarding = { [weak self] in
             self?.showOnboarding()
@@ -51,6 +70,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             settings: container.settings,
             healthHistory: container.healthHistory,
             energyUsage: container.energyUsage,
+            updateChecker: container.updateChecker,
             onQuit: { NSApp.terminate(nil) },
             onOpenSettings: { [weak self] in self?.openSettings() }
         )
@@ -144,6 +164,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             let settingsView = SettingsView()
                 .environmentObject(container.settings)
                 .environmentObject(container.chargeLimitController)
+                .environmentObject(container.updateChecker)
             let window = NSWindow(
                 contentRect: NSRect(x: 0, y: 0, width: 420, height: 700),
                 styleMask: [.titled, .closable, .resizable],

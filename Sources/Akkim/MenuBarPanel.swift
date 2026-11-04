@@ -12,6 +12,7 @@ struct MenuBarPanel: View {
     @EnvironmentObject private var settings: AppSettings
     @EnvironmentObject private var healthHistory: BatteryHealthHistory
     @EnvironmentObject private var energyUsage: EnergyUsageStore
+    @EnvironmentObject private var updater: UpdateChecker
     let onQuit: () -> Void
     let onOpenSettings: () -> Void
 
@@ -686,7 +687,7 @@ struct MenuBarPanel: View {
     // MARK: - Footer
 
     private var footerSection: some View {
-        HStack {
+        HStack(spacing: 12) {
             Button(action: onQuit) {
                 Text(L10n.t(.quitApp))
                     .font(.caption)
@@ -695,6 +696,20 @@ struct MenuBarPanel: View {
             .buttonStyle(.plain)
 
             Spacer()
+
+            // Tap → Settings › About, where the update can be installed.
+            if updater.isUpdateAvailable, let version = updater.availableVersion {
+                Button {
+                    settings.settingsTab = .about
+                    onOpenSettings()
+                } label: {
+                    Text("\(version) \(L10n.t(.update))")
+                        .font(.caption.weight(.medium))
+                        .foregroundStyle(.orange)
+                }
+                .buttonStyle(.plain)
+                .help(String(format: L10n.t(.updateAvailableFormat), version))
+            }
 
             Button(action: onOpenSettings) {
                 Text(L10n.t(.settings))
