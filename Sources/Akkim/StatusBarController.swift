@@ -197,8 +197,13 @@ final class StatusBarController: NSObject, NSPopoverDelegate {
         guard let view = popover.contentViewController?.view else { return }
         view.layoutSubtreeIfNeeded()
         let maxHeight = (NSScreen.main?.visibleFrame.height ?? 900) - 40
-        // Charts report a slightly small fitting size; give the monitor tab more room.
-        let extra: CGFloat = settings.panelTab == .monitor ? 180 : 40
+        // Charts and metric grids report a slightly small fitting size.
+        let extra: CGFloat
+        if settings.panelTab == .monitor {
+            extra = 180
+        } else {
+            extra = settings.isSectionVisible(.power) ? 170 : 40
+        }
         let measured = view.fittingSize.height + extra
         let height = min(max(measured, 300), maxHeight)
         popover.contentSize = NSSize(width: 360, height: height)

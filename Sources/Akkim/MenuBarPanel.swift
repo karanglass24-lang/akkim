@@ -24,22 +24,25 @@ struct MenuBarPanel: View {
 
             switch settings.panelTab {
             case .charge:
-                if settings.isSectionVisible(.limit) {
-                    chargeLimitSection
-                    Divider()
-                } else {
-                    sectionsHiddenHint
-                }
-            case .monitor:
-                let monitorVisible = settings.isSectionVisible(.power)
-                    || settings.isSectionVisible(.energy)
-                    || settings.isSectionVisible(.health)
-                    || settings.isSectionVisible(.history)
-                if monitorVisible {
+                let chargeVisible = settings.isSectionVisible(.limit)
+                    || settings.isSectionVisible(.power)
+                if chargeVisible {
+                    if settings.isSectionVisible(.limit) {
+                        chargeLimitSection
+                        Divider()
+                    }
                     if settings.isSectionVisible(.power) {
                         metricsSection
                         Divider()
                     }
+                } else {
+                    sectionsHiddenHint
+                }
+            case .monitor:
+                let monitorVisible = settings.isSectionVisible(.energy)
+                    || settings.isSectionVisible(.health)
+                    || settings.isSectionVisible(.history)
+                if monitorVisible {
                     if settings.isSectionVisible(.energy) {
                         energySection
                         Divider()

@@ -463,6 +463,12 @@ battery-limit/
 - AlDente Pro가 실행 중이면 설정에 충돌 경고를 표시합니다
   (`NSWorkspace.runningApplications`의 bundle id에 `aldente` 포함 여부).
 
+### 5.17 패널 전력 섹션을 충전 탭으로 이동 (2026-11-04)
+
+- 패널 **충전** 탭: 충전 제한 → 전력(충전/어댑터/시스템/잔량) 순서.
+- 패널 **모니터** 탭: 에너지 사용량 · 배터리 건강도 · 최근 차트.
+- 팝오버 높이 계산에 충전 탭의 전력 그리드 높이를 반영했습니다.
+
 ---
 
 ## 6. 실기기 테스트 체크리스트
@@ -680,7 +686,7 @@ EOF
 ### 9.2 저장소/배포
 
 - [x] 릴리스 워크플로 추가 (`.github/workflows/release.yml`, 태그 `v*` → zip + Release)
-- [x] 앱 버전 `CFBundleShortVersionString 1.5.2` / `CFBundleVersion 13`
+- [x] 앱 버전 `CFBundleShortVersionString 1.5.3` / `CFBundleVersion 14`
 - [x] `git init` 및 `https://github.com/karanglass24-lang/akkim` push
 - [ ] 폴더명 `battery-limit` → `akkim` 정리 (선택)
 - [x] 태그 푸시(`v1.0.0`, `v1.0.1`) 후 Release 자산(`Akkim.zip`, `.sha256`) 확인

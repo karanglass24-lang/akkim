@@ -48,6 +48,7 @@ The `release` workflow builds on a macOS runner, verifies the bundle, zips it as
 - Menu bar status item + modern popover panel
 - Live status (charging / AC-paused / discharging / desktop)
 - Real-time charging power (W), wall output (W), system load (W), battery level (%)
+  on the Charge tab
 - Circular battery gauge with charging animation
 - **Battery health**: health %, max/design capacity, cycle count, temperature,
   condition, and a 30-day health trend persisted between launches
