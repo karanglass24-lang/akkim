@@ -329,7 +329,7 @@ struct MenuBarPanel: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, 10)
         .padding(.vertical, 8)
-        .background(RoundedRectangle(cornerRadius: 8).fill(Color.gray.opacity(0.08)))
+        .akkimGlass(cornerRadius: 8)
     }
 
     private func exportEnergyCSV() {
@@ -511,7 +511,7 @@ struct MenuBarPanel: View {
                         }
                         .frame(maxWidth: .infinity)
                     }
-                    .buttonStyle(.bordered)
+                    .akkimGlassButton()
                     .disabled(chargeLimit.isSetting || !chargeLimit.isTopUpAvailable)
                     .help(L10n.t(.topUpHelp))
                     .padding(.horizontal, 16)
@@ -746,7 +746,7 @@ private struct MetricCard: View {
                 .foregroundStyle(.secondary)
         }
         .padding(10)
-        .background(RoundedRectangle(cornerRadius: 8).fill(Color.gray.opacity(0.08)))
+        .akkimGlass(cornerRadius: 8)
     }
 }
 
@@ -773,7 +773,7 @@ private struct StatChip: View {
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 8)
-        .background(RoundedRectangle(cornerRadius: 8).fill(Color.gray.opacity(0.08)))
+        .akkimGlass(cornerRadius: 8)
     }
 }
 

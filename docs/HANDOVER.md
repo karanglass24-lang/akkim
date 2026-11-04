@@ -774,8 +774,21 @@ EOF
 ### 9.2 저장소/배포
 
 - [x] 릴리스 워크플로 추가 (`.github/workflows/release.yml`, 태그 `v*` → zip + Release)
-- [x] 앱 버전 `CFBundleShortVersionString 1.7.3` / `CFBundleVersion 20`
-- [x] `git init` 및 `https://github.com/karanglass24-lang/akkim` push
+- [x] 앱 버전 `CFBundleShortVersionString 1.8.0` / `CFBundleVersion 21`
+- [x] Liquid Glass UI (2026-11-05): `Sources/Akkim/GlassStyle.swift`의
+  `akkimGlass(cornerRadius:)` — macOS 26+에서 `.glassEffect(.regular, in:)` +
+  `quaternary` 스트로크, 미만에서는 `.ultraThinMaterial` 폴백.
+  `akkimGlassButton()` — 26+ `GlassButtonStyle`, 미만 `.bordered`.
+  적용: 전력 MetricCard 3종, 만충전 버튼. 다크 팝오버에서 유리가 거의 안 보여
+  카드 구분이 사라지는 것을 막기 위해 스트로크를 얹음.
+  `--screenshot`의 `cacheDisplay`는 프라이빗 Glass 합성을 못 하므로 스냅샷에는
+  유리 효과가 보이지 않는다(레이아웃 확인용).
+  참고: 충전 80→85는 실측 ~1%/분 + macOS 재충전 지연 120초 → 몇 분 걸린다.
+  아이콘이 80%에 멈춰 보이는 것은 정상 동작이며 성능 이상이 아니다.
+
+---
+
+## 6. 실기기 테스트 체크리스트- [x] `git init` 및 `https://github.com/karanglass24-lang/akkim` push
 - [ ] 폴더명 `battery-limit` → `akkim` 정리 (선택)
 - [x] 태그 푸시(`v1.0.0`, `v1.0.1`) 후 Release 자산(`Akkim.zip`, `.sha256`) 확인
 - [x] 고정 다운로드 URL 확인: `/releases/latest/download/Akkim.zip`
