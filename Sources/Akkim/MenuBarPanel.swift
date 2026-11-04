@@ -64,7 +64,7 @@ struct MenuBarPanel: View {
             footerSection
         }
         .frame(width: 360)
-        .background(VisualEffectView(material: .popover))
+        .akkimPanelBackdrop()
     }
 
     private var panelTabPicker: some View {

@@ -785,10 +785,19 @@ EOF
   유리 효과가 보이지 않는다(레이아웃 확인용).
   참고: 충전 80→85는 실측 ~1%/분 + macOS 재충전 지연 120초 → 몇 분 걸린다.
   아이콘이 80%에 멈춰 보이는 것은 정상 동작이며 성능 이상이 아니다.
+- [x] 1.8.1 Liquid Glass 확장 (2026-11-05): 패널 배경을 `akkimPanelBackdrop()`로
+  교체 — 26+에서 패널 전체가 `glassEffect(.regular)`, 미만에서는 popover 머티리얼.
+  **스크린샷 파이프라인 주의**: `cacheDisplay`는 유리를 합성하지 못하므로
+  패널 스냅샷(`akkim-panel.png`)은 거의 빈 PNG가 된다 — 유리 적용을 확인하는
+  반대 증거로 쓸 수 있고, README 패널 캡처는 `screencapture` 등 다른 수단이 필요.
+  유리가 안 보인다고 보고받으면(1.8.0) 배경을 전면 유리로 확대해 해결.
+- [x] 경고 없는 배포가 필요하면 Developer ID 서명 + notarization (검토 필요)
 
 ---
 
-## 6. 실기기 테스트 체크리스트- [x] `git init` 및 `https://github.com/karanglass24-lang/akkim` push
+## 6. 실기기 테스트 체크리스트
+
+- [x] `git init` 및 `https://github.com/karanglass24-lang/akkim` push
 - [ ] 폴더명 `battery-limit` → `akkim` 정리 (선택)
 - [x] 태그 푸시(`v1.0.0`, `v1.0.1`) 후 Release 자산(`Akkim.zip`, `.sha256`) 확인
 - [x] 고정 다운로드 URL 확인: `/releases/latest/download/Akkim.zip`

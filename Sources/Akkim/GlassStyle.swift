@@ -24,6 +24,18 @@ extension View {
             )
         }
     }
+
+    /// The panel backdrop: Liquid Glass on macOS 26+, popover
+    /// material on older systems. Applied to a large surface so the
+    /// glass reads clearly.
+    @ViewBuilder
+    func akkimPanelBackdrop() -> some View {
+        if #available(macOS 26.0, *) {
+            Color.clear.glassEffect(.regular, in: RoundedRectangle(cornerRadius: 12))
+        } else {
+            VisualEffectView(material: .popover)
+        }
+    }
 }
 
 extension View {
