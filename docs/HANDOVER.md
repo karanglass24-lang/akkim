@@ -482,10 +482,11 @@ Shortcuts 없이 macOS Charge Limit을 바꿀 수 있는 경로를 찾아 적용
 - `Sources/Akkim/SystemChargeLimit.swift` 가 런타임에서 SEL 존재를 검사한 뒤
   `unsafeBitCast` 으로 호출합니다. API가 사라지면 `isAvailable == false` 로 떨어지고
   Shortcuts 브리지로 폴백합니다.
-- 동기화 규칙(`ChargeLimitController.reconcileSystemLimit()`):
-  - 시스템 제한 < 앱 제한 → 앱 제한으로 올림 (충전 보류의 원인)
-  - 시스템 제한 > 앱 제한 → 그대로 둠 (사용자 선택일 수 있음)
-  - 만충전/보정 중 → 100%로 올렸다가 끝나면 원래 값으로 복원 (`systemLimitRaised`)
+- 동기화 규칙(`ChargeLimitController.reconcileSystemLimit()`, 5초마다):
+  - 만충전/보정 중 → 100%로 올림 (끝나면 앱 제한으로 자동 복원)
+  - 그 외 앱 제한이 켜져 있으면 → 시스템 제한을 **앱 제한과 동일하게** 맞춤
+    (시스템 제한이 더 낮으면 충전이 보류되는 문제를 원천 차단)
+  - 앱 제한이 꺼져 있으면 → 시스템 값은 그대로 둠
 - 실측: `setMCLLimit(85)` → `/Library/Preferences/com.apple.powerd.charging.plist`
   의 `policies.soclimit` 가 85로 바뀌고(powerd가 기록), 그리고 약 120초 뒤
   `IsCharging=0 → 1`(79%→80%). `availableChargeLimits` = 80/85/90/95/100.
@@ -708,7 +709,7 @@ EOF
 ### 9.2 저장소/배포
 
 - [x] 릴리스 워크플로 추가 (`.github/workflows/release.yml`, 태그 `v*` → zip + Release)
-- [x] 앱 버전 `CFBundleShortVersionString 1.6.0` / `CFBundleVersion 15`
+- [x] 앱 버전 `CFBundleShortVersionString 1.6.1` / `CFBundleVersion 16`
 - [x] `git init` 및 `https://github.com/karanglass24-lang/akkim` push
 - [ ] 폴더명 `battery-limit` → `akkim` 정리 (선택)
 - [x] 태그 푸시(`v1.0.0`, `v1.0.1`) 후 Release 자산(`Akkim.zip`, `.sha256`) 확인

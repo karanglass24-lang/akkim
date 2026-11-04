@@ -28,11 +28,6 @@ final class ChargeLimitController: ObservableObject {
 
     private var systemHoldSince: Date?
 
-    /// Set while Akkim has borrowed the system limit for a top-up / calibration,
-    /// so it can put the previous value back instead of overwriting a limit the
-    /// user chose in System Settings.
-    private var systemLimitRaised = false
-
     var onOpenOnboarding: (() -> Void)?
 
     private let limiter: SMCChargeLimiter
@@ -131,10 +126,11 @@ final class ChargeLimitController: ObservableObject {
 
     /// Keeps macOS's own Charge Limit from fighting the app.
     ///
-    /// - a top-up or calibration raises it to 100% (and puts it back afterwards),
-    /// - a system limit *below* the app's limit is raised to the app's limit,
-    /// - a system limit above the app's limit is left alone: the helper holds
-    ///   charging there anyway, and it may be the user's own choice.
+    /// - a top-up or calibration raises it to 100%, and it comes back by itself
+    ///   when the daemon finishes (no bookkeeping needed),
+    /// - otherwise the system limit follows the app's limit, so powerd can never
+    ///   hold charging below what the app allows,
+    /// - when the app limit is off the system value is left alone.
     private func reconcileSystemLimit() {
         guard SystemChargeLimit.isAvailable, let current = SystemChargeLimit.currentLimit() else {
             systemLimit = nil
@@ -146,24 +142,16 @@ final class ChargeLimitController: ObservableObject {
         let daemonNeedsFull = fresh && (helperStatus?.reason == .topUp || helperStatus?.reason == .calibration)
         let needsFull = isTopUpActive || daemonNeedsFull
 
-        let appLimit: Int? = {
-            if case .limited(let n) = state { return n }
-            return nil
-        }()
-
         var desired: Int?
         if needsFull {
-            if current < 100 { desired = 100 }
-        } else if systemLimitRaised {
-            desired = appLimit ?? 100
-        } else if let appLimit, current < appLimit {
+            desired = 100
+        } else if case .limited(let appLimit) = state {
             desired = appLimit
         }
         guard let desired, desired != current, ChargeLimitConstants.steps.contains(desired) else { return }
         do {
             try SystemChargeLimit.setLimit(desired)
             systemLimit = desired
-            systemLimitRaised = needsFull
         } catch {
             // powerd can be briefly busy; the next refresh retries.
         }
