@@ -95,26 +95,26 @@ macOS 26.4부터는 시스템 자체 **Charge Limit**(80–100%)이 있습니다
 OS가 충전을 시작하지 않습니다. 이때 패널은 **"macOS가 충전을 보류 중"** 경고와
 **시스템 설정 열기** 버튼을 표시합니다.
 
-### 한 번만 설정
+### 값이 고정된 단축어 5개 만들기
 
-1. 앱 **설정 › 시스템 충전 제한 › Shortcuts 열기**
-2. Shortcuts에서 새 단축어를 만들고 **“Set Battery Charge Limit”** 동작을 추가
-3. 값은 **Shortcut Input(단축어 입력)** 으로 지정
-4. 이름을 정확히 **`SetBatteryChargeLimit`** 로 저장
-5. 앱 설정에서 **다시 확인** → “연동됨” 표시
+“Set Charge Limit” 동작은 값이 **고정 퍼센트**만 지원합니다. 그래서 80/85/90/95/100용
+단축어를 5개 만듭니다.
 
-연동 후에는 앱에서 제한을 바꾸면 시스템 제한도 함께 바뀝니다(설정 앱에 들어갈 필요 없음).
+1. Shortcuts에서 새 단축어 → 동작 **“Set Charge Limit”** 추가 → 값 **80%**
+2. 이름을 **`SetBatteryChargeLimit80`** 로 저장
+3. 같은 방법으로 85/90/95/100을 만들어 이름을
+   `SetBatteryChargeLimit85`, `…90`, `…95`, `…100` 으로 저장
+4. 앱 설정 › 시스템 충전 제한 › **다시 확인** → “연동됨”
+5. 앱에서 제한을 바꾸면 해당 단축어가 실행되어 시스템 제한이 바뀝니다
 
-> 동작의 값 입력란에 “Shortcut Input”을 선택할 수 없다면, 그 액션은 고정값만 지원하는
-> 버전입니다. 이 경우 앱에서 값을 바꿀 수 없으므로 시스템 설정에서 직접 85% 등으로
-> 맞춘 뒤 사용하세요.
+> 예전에 만든 `SetBatteryChargeLimit`(값 입력형) 단축어가 있으면, 5개 단축어가
+> 모두 있을 때 앱은 **고정 단축어를 우선** 사용합니다.
 
 ### 연동 확인
 
 ```bash
 shortcuts list | grep SetBatteryChargeLimit
-printf '85' > /tmp/85.txt
-shortcuts run SetBatteryChargeLimit -i /tmp/85.txt
+shortcuts run SetBatteryChargeLimit85     # 85%로 고정된 단축어
 ```
 
 실행 후 `ioreg`에서 충전이 재개되는지 확인할 수 있습니다.

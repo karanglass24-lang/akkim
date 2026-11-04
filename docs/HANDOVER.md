@@ -448,6 +448,14 @@ battery-limit/
 - 팝오버 높이: 탭 전환 시 `updatePopoverSize()`로 다시 맞춥니다.
 - 차트 라벨이 잘리지 않도록 HistoryChartView에 내부 여백 + clip을 적용했습니다.
 
+### 5.15 고정값 단축어 5개 지원 (2026-11-04)
+
+- “Set Charge Limit” Shortcuts 동작은 **고정 퍼센트만** 지원합니다(Shortcut Input 불가).
+- `ShortcutBridge`가 다음 두 구성을 지원합니다.
+  - `SetBatteryChargeLimit85` 처럼 값이 고정된 단축어 5개 (우선)
+  - `SetBatteryChargeLimit` 하나에 입력을 넘기는 방식 (레거시)
+- `recheckBridge()`로 설정 화면의 “다시 확인”이 캐시를 무시하고 즉시 재확인합니다.
+
 ---
 
 ## 6. 실기기 테스트 체크리스트
@@ -665,7 +673,7 @@ EOF
 ### 9.2 저장소/배포
 
 - [x] 릴리스 워크플로 추가 (`.github/workflows/release.yml`, 태그 `v*` → zip + Release)
-- [x] 앱 버전 `CFBundleShortVersionString 1.5.0` / `CFBundleVersion 11`
+- [x] 앱 버전 `CFBundleShortVersionString 1.5.1` / `CFBundleVersion 12`
 - [x] `git init` 및 `https://github.com/karanglass24-lang/akkim` push
 - [ ] 폴더명 `battery-limit` → `akkim` 정리 (선택)
 - [x] 태그 푸시(`v1.0.0`, `v1.0.1`) 후 Release 자산(`Akkim.zip`, `.sha256`) 확인

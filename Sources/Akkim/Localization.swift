@@ -300,11 +300,11 @@ extension LKey {
         case .systemLimitLinked:        return ("Linked — changes apply to macOS too", "연동됨 — 변경이 macOS에도 적용됩니다")
         case .systemLimitNotLinked:     return ("Not linked", "연동되지 않음")
         case .systemLimitDetail:
-            return ("macOS 26.4+ enforces its own Charge Limit. Link it once through Shortcuts and Akkim can update the system limit from this app, without opening System Settings.",
-                    "macOS 26.4+에는 자체 충전 제한이 있습니다. Shortcuts로 한 번 연동하면 앱에서 바꾼 값이 시스템 제한에도 적용되어 설정 앱을 열 필요가 없습니다.")
+            return ("macOS 26.4+ enforces its own Charge Limit. Link it through Shortcuts and Akkim can update the system limit from this app, without opening System Settings.",
+                    "macOS 26.4+에는 자체 충전 제한이 있습니다. Shortcuts로 연동하면 앱에서 바꾼 값이 시스템 제한에도 적용되어 설정 앱을 열 필요가 없습니다.")
         case .systemLimitSteps:
-            return ("Shortcuts → New Shortcut → add “Set Battery Charge Limit” → use Shortcut Input → name it SetBatteryChargeLimit.",
-                    "Shortcuts → 새 단축어 → ‘Set Battery Charge Limit’ 동작 추가 → 값은 ‘단축어 입력’ → 이름을 SetBatteryChargeLimit로 저장하세요.")
+            return ("Create five shortcuts with the “Set Charge Limit” action, one for each value, named SetBatteryChargeLimit80, …85, …90, …95, …100.",
+                    "‘Set Charge Limit’ 동작으로 값이 고정된 단축어 5개를 만들고 이름을 SetBatteryChargeLimit80, …85, …90, …95, …100으로 저장하세요.")
         case .openShortcutsApp:         return ("Open Shortcuts", "Shortcuts 열기")
         case .recheck:                  return ("Check again", "다시 확인")
         case .tabCharge:                return ("Charge", "충전")

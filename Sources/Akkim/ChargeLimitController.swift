@@ -124,6 +124,12 @@ final class ChargeLimitController: ObservableObject {
         return available
     }
 
+    /// Clears the cached Shortcuts probe (e.g. after creating a shortcut).
+    func recheckBridge() async {
+        bridgeProbe = nil
+        await refresh()
+    }
+
     /// Explicit on/off switch for the charge limit.
     func setLimitEnabled(_ enabled: Bool) async {
         if enabled {

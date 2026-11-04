@@ -25,7 +25,7 @@ struct SettingsView: View {
         }
         .frame(width: 420, height: 700)
         .onAppear {
-            Task { await chargeLimit.refresh() }
+            Task { await chargeLimit.recheckBridge() }
         }
         .onChange(of: settings.launchAtLogin) { _ in
             settings.applyLaunchAtLogin()
@@ -169,7 +169,7 @@ struct SettingsView: View {
                          : L10n.t(.systemLimitNotLinked))
                     Spacer()
                     Button(L10n.t(.recheck)) {
-                        Task { await chargeLimit.refresh() }
+                        Task { await chargeLimit.recheckBridge() }
                     }
                     .font(.caption)
                 }
