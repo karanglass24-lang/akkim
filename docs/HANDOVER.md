@@ -809,3 +809,45 @@ EOF
 - SMC 참고: batt, SMCKit
 - CI: `.github/workflows/build.yml`
 - 라이선스 고지: `LICENSE`, `THIRD-PARTY-NOTICES.md`
+
+## 13. 원격 디버깅 (선더볼트 브리지로 연결된 다른 맥)
+
+다른 맥이 선더볼트로 연결돼 있으면 **Thunderbolt Bridge** 네트워크로 직접
+SSH 접속해 진단·복구할 수 있다. 비밀번호를 주고받을 필요가 없다.
+
+### 연결 상태 확인
+
+```bash
+ipconfig getifaddr bridge0        # 이 맥: 10.77.0.1
+arp -an | grep bridge0            # 상대: 10.77.0.2
+nc -z -G 2 10.77.0.2 22           # 원격 로그인(SSH) 켜져 있는지
+```
+
+### 접속 권한 받기 (사용자가 다른 맥에서 한 번만 실행)
+
+```bash
+mkdir -p ~/.ssh && chmod 700 ~/.ssh && printf '%s\n' '<이 맥의 공개키>' \
+  >> ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys \
+  && echo "OK user=$(whoami) host=$(hostname -s)"
+```
+
+- 공개키: `cat ~/.ssh/id_ed25519.pub`
+- 출력된 `user=` 값을 그대로 사용: `ssh <user>@10.77.0.2`
+
+### 접속 후 진단·복구
+
+```bash
+ssh <user>@10.77.0.2 '/Applications/Akkim.app/Contents/MacOS/Akkim --diagnose'
+ssh <user>@10.77.0.2 '/Applications/Akkim.app/Contents/MacOS/Akkim --install-helper'
+```
+
+- `--diagnose`: 관리자 권한 없이 OS/앱/capability/헬퍼/config를 한 번에 출력
+- `--install-helper`: 관리자 인증 창이 원격 맥 화면에 뜬다(화면 공유 필요)
+- 앱 업데이트는 자체 업데이터(설정 › 정보) 또는 zip을 `scp`로 보내 설치
+
+### 주의
+
+- 원격 맥에서 `sudo`가 필요한 명령은 사용자가 직접 입력해야 한다(비밀번호 전달 금지).
+- 선더볼트 브리지 IP(10.77.0.x)는 케이블을 다시 꽂으면 유지되지만,
+  다른 맥이 재부팅되면 `arp` 로 다시 확인한다.
+
