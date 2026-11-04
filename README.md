@@ -25,12 +25,12 @@ The name 아낌 (*akkim*) is the Korean noun form of "to save / to cherish" (아
 Prebuilt bundles are published on GitHub Releases:
 
 - Latest release: <https://github.com/karanglass24-lang/akkim/releases/latest>
-- Direct zip: <https://github.com/karanglass24-lang/akkim/releases/latest/download/Akkim.zip>
+- **First install: `Akkim.pkg`** — installs the app to `/Applications` and the
+  root helper daemon in one step (one admin password, no extra prompt later)
+- `Akkim.zip` — used by the in-app self-updater; unzip into `/Applications`
 
-Unzip, move `Akkim.app` to `/Applications`, and open it. Release builds are ad-hoc
-signed, so the first launch may be blocked (right-click → Open, or
-`xattr -dr com.apple.quarantine /Applications/Akkim.app`). The root helper still asks
-for admin authorization the first time the charge limit is enabled.
+Release builds are ad-hoc signed, so the first launch may be blocked (right-click
+→ Open, or `xattr -dr com.apple.quarantine /Applications/Akkim.app`).
 
 After that, **updates are automatic**: Akkim checks GitHub Releases twice a day,
 verifies the published SHA-256, replaces itself in place and relaunches.

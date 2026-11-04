@@ -42,12 +42,18 @@ jobs:
           shasum -a 256 Akkim.zip > Akkim.zip.sha256
           cat Akkim.zip.sha256
 
+      - name: Package installer
+        run: |
+          set -euo pipefail
+          bash scripts/build-pkg.sh dist/Akkim.pkg
+
       - name: Publish release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           gh release create "${GITHUB_REF_NAME}" \
-            "dist/Akkim.zip" "dist/Akkim.zip.sha256" \
+            "dist/Akkim.pkg" "dist/Akkim.zip" "dist/Akkim.zip.sha256" \
             --title "아낌 ${GITHUB_REF_NAME}" \
+            --notes "첫 설치는 **Akkim.pkg** (앱+헬퍼 한 번에 설치). 기존 사용자는 앱의 자동 업데이트를 쓰세요." \
             --generate-notes

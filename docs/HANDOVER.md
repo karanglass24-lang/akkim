@@ -544,6 +544,19 @@ Shortcuts 없이 macOS Charge Limit을 바꿀 수 있는 경로를 찾아 적용
   (헬퍼 유무와 무관하게 항상 실행).
 - 검증: 원격 맥 `--diagnose` → `State: limited(80)`, `--system-limit 85` → 85.
 
+### 5.22 PKG 인스톨러 (2026-11-04)
+
+zip 수동 설치의 문제(Downloads 방치 → App Translocation, 헬퍼 별도 인증)를
+인스톨러로 해결했다.
+
+- `scripts/build-pkg.sh`: `pkgbuild` 로 `Akkim.pkg` 생성.
+  payload는 앱뿐(`/Applications`), postinstall(root)이
+  `install-helper.sh install` 을 실행해 **헬퍼까지 한 번에** 설치하고
+  quarantine을 제거한다. 설치 로직이 이중화되지 않도록 기존 스크립트를 재사용.
+- 릴리스 에셋: `Akkim.pkg`(첫 설치 권장) + `Akkim.zip`(자동 업데이터가 사용하므로
+  반드시 유지) + `.sha256`.
+- 로컬 검증: `pkgutil --expand-full` 로 Payload/Scripts/postinstall 확인.
+
 ---
 
 ## 6. 실기기 테스트 체크리스트
@@ -761,7 +774,7 @@ EOF
 ### 9.2 저장소/배포
 
 - [x] 릴리스 워크플로 추가 (`.github/workflows/release.yml`, 태그 `v*` → zip + Release)
-- [x] 앱 버전 `CFBundleShortVersionString 1.7.2` / `CFBundleVersion 19`
+- [x] 앱 버전 `CFBundleShortVersionString 1.7.3` / `CFBundleVersion 20`
 - [x] `git init` 및 `https://github.com/karanglass24-lang/akkim` push
 - [ ] 폴더명 `battery-limit` → `akkim` 정리 (선택)
 - [x] 태그 푸시(`v1.0.0`, `v1.0.1`) 후 Release 자산(`Akkim.zip`, `.sha256`) 확인
