@@ -30,6 +30,7 @@ enum Diagnostics {
             + " systemControl=\(cap.systemControl) bridgeConfigured=\(cap.bridgeConfigured)"
             + " canSetInApp=\(cap.canSetInApp)")
         out.append("Limiter: installed=\(limiter.installed) enabled=\(limiter.enabled) limit=\(limiter.limit)")
+        out.append("State: \(String(describing: controller.state))")
         if let err = limiter.lastError { out.append("LimiterError: \(err)") }
         if let err = controller.lastError { out.append("LastError: \(err)") }
 

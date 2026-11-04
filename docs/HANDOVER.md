@@ -527,6 +527,23 @@ Shortcuts 없이 macOS Charge Limit을 바꿀 수 있는 경로를 찾아 적용
   **직접 제어 → Shortcuts → 헬퍼** 순으로 내려가고, 직접 제어 실패는
   `lastError` 로 알리되 헬퍼가 처리했으면 제한은 적용된다.
 
+### 5.21 토글이 꺼지던 근본 원인 수정 (2026-11-04, 선더볼트 원격 진단)
+
+선더볼트 브리지(10.77.0.2)로 SSH 접속해 다른 맥을 직접 진단했다.
+
+- **원인 1 — App Translocation**: 앱이 `~/Downloads`에 quarantine 상태로 있어
+  `/private/var/folders/.../AppTranslocation/...` 에서 실행 중이었다.
+  → `pkill` 후 `/Applications`로 설치, quarantine 제거.
+- **원인 2 (근본) — `state` 를 헬퍼에만 의존**: `refresh()` 가
+  `state = (enabled && installed) ? .limited : .unlimited` 로만 계산해서
+  **헬퍼가 없는 맥에서는 토글이 항상 꺼졌다.** 시스템 제한(80)은 실제로
+  설정돼 있어도 UI는 `unlimited` 로 표시됐다.
+  → `recomputeState()` 를 추가하고 `systemControl && systemLimit < 100` 이면
+  `state = .limited(systemLimit)`. `refreshHelperStatus()` 의 early-return
+  guard 때문에 `reconcileSystemLimit()` 이 실행되지 않던 것도 수정
+  (헬퍼 유무와 무관하게 항상 실행).
+- 검증: 원격 맥 `--diagnose` → `State: limited(80)`, `--system-limit 85` → 85.
+
 ---
 
 ## 6. 실기기 테스트 체크리스트
@@ -744,7 +761,7 @@ EOF
 ### 9.2 저장소/배포
 
 - [x] 릴리스 워크플로 추가 (`.github/workflows/release.yml`, 태그 `v*` → zip + Release)
-- [x] 앱 버전 `CFBundleShortVersionString 1.7.1` / `CFBundleVersion 18`
+- [x] 앱 버전 `CFBundleShortVersionString 1.7.2` / `CFBundleVersion 19`
 - [x] `git init` 및 `https://github.com/karanglass24-lang/akkim` push
 - [ ] 폴더명 `battery-limit` → `akkim` 정리 (선택)
 - [x] 태그 푸시(`v1.0.0`, `v1.0.1`) 후 Release 자산(`Akkim.zip`, `.sha256`) 확인

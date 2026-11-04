@@ -79,7 +79,6 @@ final class ChargeLimitController: ObservableObject {
         let installed = limiter.installed
         let enabled = limiter.enabled
         let limit = limiter.limit
-        state = (enabled && installed) ? .limited(limit) : .unlimited
 
         // macOS 26.4+ exposes its Charge Limit directly through PowerUI; prefer
         // that over the Shortcuts bridge (no setup required).
@@ -90,7 +89,24 @@ final class ChargeLimitController: ObservableObject {
 
         // 보정 상태 갱신
         calibrationStatus = limiter.readCalibrationStatus()
+
+        // Derive once before the daemon sync (so reconcile sees a fresh app
+        // limit) and once after (it may have moved the system limit).
+        recomputeState(installed: installed, enabled: enabled, limit: limit)
         refreshHelperStatus()
+        recomputeState(installed: installed, enabled: enabled, limit: limit)
+    }
+
+    /// Without the helper the system Charge Limit is the only actuator, so it
+    /// alone decides whether a limit is active. (Before 1.7.2 `state` was
+    /// derived from the helper only, which made the toggle snap back off on
+    /// machines where the helper was never installed.)
+    private func recomputeState(installed: Bool, enabled: Bool, limit: Int) {
+        if capability.systemControl, let systemLimit, systemLimit < 100 {
+            state = .limited(systemLimit)
+        } else {
+            state = (enabled && installed) ? .limited(limit) : .unlimited
+        }
     }
 
     /// Reads the daemon's published state (mtime-cached) and reconciles local flags.
@@ -100,27 +116,28 @@ final class ChargeLimitController: ObservableObject {
         helperStatus = status
         isTopUpActive = limiter.topUpRequested
 
-        guard let status, !status.isStale else { return }
-        limiter.syncTopUp(fromDaemon: status.topUp)
-        isTopUpActive = limiter.topUpRequested
+        if let status, !status.isStale {
+            limiter.syncTopUp(fromDaemon: status.topUp)
+            isTopUpActive = limiter.topUpRequested
 
-        // The daemon owns the config file; align the toggle when the file changed
-        // from another path (e.g. helper rewritten topUp). Skipped right after a
-        // local write so a stale state file cannot flip the switch back.
-        if limiter.syncFromDaemon(enabled: status.enabled, limit: status.limit) {
-            state = (limiter.enabled && limiter.installed) ? .limited(limiter.limit) : .unlimited
+            // The daemon owns the config file; align the toggle when the file changed
+            // from another path (e.g. helper rewritten topUp). Skipped right after a
+            // local write so a stale state file cannot flip the switch back.
+            if limiter.syncFromDaemon(enabled: status.enabled, limit: status.limit) {
+                state = (limiter.enabled && limiter.installed) ? .limited(limiter.limit) : .unlimited
+            }
+
+            // The daemon reports CHIE availability; keep the UI toggle honest.
+            if !status.chieAvailable, limiter.dischargeEnabled {
+                limiter.setDischarge(false)
+                AppSettings.shared.dischargeMode = false
+                AppSettings.shared.save()
+            }
         }
 
-        // The daemon reports CHIE availability; keep the UI toggle honest.
-        if !status.chieAvailable, limiter.dischargeEnabled {
-            limiter.setDischarge(false)
-            AppSettings.shared.dischargeMode = false
-            AppSettings.shared.save()
-        }
-
-        // macOS's own Charge Limit must never sit below the app's limit (that is
-        // what makes powerd hold charging), and a one-shot top-up or an active
-        // calibration needs 100%.
+        // Runs even without a helper: the system Charge Limit is the only
+        // actuator on machines where the helper was never installed, so it must
+        // be read and published here.
         reconcileSystemLimit()
     }
 
