@@ -97,10 +97,11 @@ OS가 충전을 시작하지 않습니다. 이때 패널은 **"macOS가 충전�
 
 ### 값이 고정된 단축어 5개 만들기
 
-“Set Charge Limit” 동작은 값이 **고정 퍼센트**만 지원합니다. 그래서 80/85/90/95/100용
+Apple의 **“Set Battery Charge Limit”** 동작은 값이 **고정 퍼센트**만 지원합니다.
+(AlDente의 “Set Charge Limit”과 이름이 비슷하니 주의하세요.) 그래서 80/85/90/95/100용
 단축어를 5개 만듭니다.
 
-1. Shortcuts에서 새 단축어 → 동작 **“Set Charge Limit”** 추가 → 값 **80%**
+1. Shortcuts에서 새 단축어 → 동작 **“Set Battery Charge Limit”** 추가 → 값 **80%**
 2. 이름을 **`SetBatteryChargeLimit80`** 로 저장
 3. 같은 방법으로 85/90/95/100을 만들어 이름을
    `SetBatteryChargeLimit85`, `…90`, `…95`, `…100` 으로 저장
@@ -109,6 +110,10 @@ OS가 충전을 시작하지 않습니다. 이때 패널은 **"macOS가 충전�
 
 > 예전에 만든 `SetBatteryChargeLimit`(값 입력형) 단축어가 있으면, 5개 단축어가
 > 모두 있을 때 앱은 **고정 단축어를 우선** 사용합니다.
+
+> **AlDente와 동시 사용 금지**: AlDente Pro가 실행 중이면 두 앱이 같은 SMC 키를
+> 제어해 충전이 멈추거나 제한이 풀릴 수 있습니다. Akkim을 쓰는 동안에는 AlDente를
+> 종료하고, 가능하면 로그인 항목에서도 빼 두세요.
 
 ### 연동 확인
 
@@ -217,6 +222,15 @@ shortcuts list | grep -i battery
 - 이름이 정확히 `SetBatteryChargeLimit`인지 확인
 - 단축어를 열어 **Set Battery Charge Limit** 동작이 들어 있는지 확인
 - 동작의 값이 **Shortcut Input**으로 설정되어 있는지 확인
+
+### AlDente를 같이 쓰고 있음
+
+AlDente Pro의 헬퍼는 Akkim 헬퍼와 같은 SMC 키(`CHTE`/`CHIE`)를 제어합니다.
+동시에 실행하면 서로 값을 덮어써 충전이 시작되지 않거나 제한이 풀릴 수 있습니다.
+
+- Akkim 사용 중에는 AlDente를 종료
+- AlDente의 로그인 시 자동 실행 해제
+- 계속 함께 써야 한다면 AlDente의 충전 제어 기능을 끄고 Akkim만 사용
 
 ### 설정 창을 닫았는데 빈 창이 남음
 

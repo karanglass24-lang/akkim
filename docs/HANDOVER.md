@@ -31,7 +31,7 @@ SoC 차트, 사유 기반 알림**을 추가했습니다.
 | 안정성(P0) | JSON 원자적 쓰기, 데몬 last-good-config(약 60초), 권한 775/664 자동 교정, 서명 순서, 알림 게이팅, 구 데몬(`com.batterylimit.helper`) 제거 |
 | UX(P1) | 관리자 인증 비블로킹(`Process.terminationHandler`), 제한 on/off 토글, `shortcuts list` 프로브 캐싱 |
 | 이번 배치 | 헬퍼 상태 파일, 일시정지 사유, 원샷 만충전, 열 보호, 우클릭 빠른 메뉴, 메뉴바 표시 옵션, SoC 스파크라인, 알림 세분화 |
-| 지역화 | `LKey` **133개**, `LKey.text` exhaustive switch |
+| 지역화 | `LKey` **134개**, `LKey.text` exhaustive switch |
 | 패키징 | `scripts/package-app.sh`, ad-hoc 서명, MIT 고지 파일 번들 포함 |
 | CI | `.github/workflows/build.yml` (macos-14, build → package → signature/bundle 검증 → artifact) |
 
@@ -163,7 +163,7 @@ battery-limit/
 │   ├── MenuBarPanel.swift        # 팝오버 UI
 │   ├── SettingsView.swift
 │   ├── HistoryChartView.swift    # 전력 + SoC 차트
-│   ├── Localization.swift        # LKey 133개 (ko/en)
+│   ├── Localization.swift        # LKey 134개 (ko/en)
 │   ├── MenuBarIcon.swift         # 메뉴바 배터리 글리프(AppKit 직접 그리기)
 │   ├── BatteryHealthHistory.swift # 건강도 샘플 저장/추이
 │   ├── BatteryHealthChart.swift   # Swift Charts 건강도 영역 그래프
@@ -456,6 +456,13 @@ battery-limit/
   - `SetBatteryChargeLimit` 하나에 입력을 넘기는 방식 (레거시)
 - `recheckBridge()`로 설정 화면의 “다시 확인”이 캐시를 무시하고 즉시 재확인합니다.
 
+### 5.16 Apple 기본 액션 이름 + AlDente 충돌 경고 (2026-11-04)
+
+- Shortcuts에서 Apple 기본 액션은 **“Set Battery Charge Limit”** (`ActionKit`)이며,
+  AlDente의 “Set Charge Limit”과 다릅니다. 두 액션 모두 값은 고정 퍼센트입니다.
+- AlDente Pro가 실행 중이면 설정에 충돌 경고를 표시합니다
+  (`NSWorkspace.runningApplications`의 bundle id에 `aldente` 포함 여부).
+
 ---
 
 ## 6. 실기기 테스트 체크리스트
@@ -673,7 +680,7 @@ EOF
 ### 9.2 저장소/배포
 
 - [x] 릴리스 워크플로 추가 (`.github/workflows/release.yml`, 태그 `v*` → zip + Release)
-- [x] 앱 버전 `CFBundleShortVersionString 1.5.1` / `CFBundleVersion 12`
+- [x] 앱 버전 `CFBundleShortVersionString 1.5.2` / `CFBundleVersion 13`
 - [x] `git init` 및 `https://github.com/karanglass24-lang/akkim` push
 - [ ] 폴더명 `battery-limit` → `akkim` 정리 (선택)
 - [x] 태그 푸시(`v1.0.0`, `v1.0.1`) 후 Release 자산(`Akkim.zip`, `.sha256`) 확인
@@ -699,7 +706,7 @@ EOF
 
 - **UI 문자열**: 반드시 `Sources/Akkim/Localization.swift`의 `LKey`에 추가.
   `LKey.text`는 exhaustive switch이므로 번역 누락 시 컴파일 실패.
-  현재 133개.
+  현재 134개.
 - **리소스 없음**: `.lproj`를 쓰지 않으므로 `Package.swift`에 `resources:`를 추가하지 말 것.
 - **동시성**: `SMCChargeLimiter`, `ChargeLimitController`, `AppSettings`,
   `StatusBarController`, `SampleStream`은 `@MainActor`.

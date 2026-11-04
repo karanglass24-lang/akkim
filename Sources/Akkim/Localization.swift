@@ -114,6 +114,7 @@ enum LKey {
     case systemLimitNotLinked
     case systemLimitDetail
     case systemLimitSteps
+    case alDenteWarning
     case openShortcutsApp
     case recheck
     case tabCharge
@@ -303,8 +304,11 @@ extension LKey {
             return ("macOS 26.4+ enforces its own Charge Limit. Link it through Shortcuts and Akkim can update the system limit from this app, without opening System Settings.",
                     "macOS 26.4+에는 자체 충전 제한이 있습니다. Shortcuts로 연동하면 앱에서 바꾼 값이 시스템 제한에도 적용되어 설정 앱을 열 필요가 없습니다.")
         case .systemLimitSteps:
-            return ("Create five shortcuts with the “Set Charge Limit” action, one for each value, named SetBatteryChargeLimit80, …85, …90, …95, …100.",
-                    "‘Set Charge Limit’ 동작으로 값이 고정된 단축어 5개를 만들고 이름을 SetBatteryChargeLimit80, …85, …90, …95, …100으로 저장하세요.")
+            return ("In Shortcuts use Apple’s “Set Battery Charge Limit” action (not AlDente’s) and make five shortcuts named SetBatteryChargeLimit80, …85, …90, …95, …100.",
+                    "Shortcuts에서 Apple의 ‘Set Battery Charge Limit’ 동작(AlDente의 ‘Set Charge Limit’ 아님)으로 값이 고정된 단축어 5개를 만들고 이름을 SetBatteryChargeLimit80, …85, …90, …95, …100으로 저장하세요.")
+        case .alDenteWarning:
+            return ("AlDente is running. Two charge controllers can fight over the battery — quit AlDente while using Akkim.",
+                    "AlDente가 실행 중입니다. 두 앱이 충전 제어를 두고 충돌할 수 있으니 Akkim 사용 중에는 AlDente를 종료하세요.")
         case .openShortcutsApp:         return ("Open Shortcuts", "Shortcuts 열기")
         case .recheck:                  return ("Check again", "다시 확인")
         case .tabCharge:                return ("Charge", "충전")

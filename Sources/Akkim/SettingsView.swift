@@ -176,6 +176,16 @@ struct SettingsView: View {
                 Text(L10n.t(.systemLimitDetail))
                     .font(.caption)
                     .foregroundStyle(.secondary)
+
+                if alDenteRunning {
+                    HStack(spacing: 6) {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .foregroundStyle(.orange)
+                        Text(L10n.t(.alDenteWarning))
+                            .font(.caption2)
+                            .foregroundStyle(.orange)
+                    }
+                }
                 if !chargeLimit.capability.bridgeConfigured {
                     Text(L10n.t(.systemLimitSteps))
                         .font(.caption2)
@@ -289,6 +299,12 @@ struct SettingsView: View {
                     .font(.caption2)
                     .foregroundStyle(.secondary)
             }
+        }
+    }
+
+    private var alDenteRunning: Bool {
+        NSWorkspace.shared.runningApplications.contains {
+            ($0.bundleIdentifier ?? "").lowercased().contains("aldente")
         }
     }
 
