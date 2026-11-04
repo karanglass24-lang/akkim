@@ -510,6 +510,23 @@ Shortcuts 없이 macOS Charge Limit을 바꿀 수 있는 경로를 찾아 적용
   `/private/var/tmp/.../Akkim.app` 이 1.6.1로 교체되고 자동 재실행 확인.
 - 설치 위치가 쓸 수 없으면(`isWritableFile` 실패) 다운로드 페이지를 엽니다.
 
+### 5.20 자가 진단·복구 + 제어 폴백 (2026-11-04)
+
+다른 맥에서 "충전 제한 사용"이 켜지지 않는 제보를 받아, 원격 접속 없이
+스스로 원인을 찾고 고칠 수 있게 만들었습니다.
+
+- **`Akkim --diagnose`** (`Sources/Akkim/Diagnostics.swift`): 관리자 권한 없이
+  OS/아키텍처·앱 버전·quarantine·capability·시스템 제한 API·헬퍼
+  (launchd/binary/running)·config/state JSON·Shortcuts 목록을 한 번에 출력하고
+  `Hint` 로 다음 조치를 알려 준다. `pgrep -f com.akkim.helper` 패턴을 써야
+  데몬을 잡는다(`akkim-helper` 는 프로세스명이 아님 — 실수로 빈틈이 있었다).
+- **`Akkim --install-helper`**: UI가 쓰는 것과 같은 osascript 관리자 설치를
+  터미널에서 실행해 결과를 출력한다. 헬퍼 설치 실패를 스스로 복구할 수 있다.
+- **제어 폴백 버그 수정**: `set()` 이 직접 제어(`systemControl`) 실패 시
+  `catch` 로 끝나 헬퍼를 시도하지 않았다. 이제
+  **직접 제어 → Shortcuts → 헬퍼** 순으로 내려가고, 직접 제어 실패는
+  `lastError` 로 알리되 헬퍼가 처리했으면 제한은 적용된다.
+
 ---
 
 ## 6. 실기기 테스트 체크리스트
@@ -727,7 +744,7 @@ EOF
 ### 9.2 저장소/배포
 
 - [x] 릴리스 워크플로 추가 (`.github/workflows/release.yml`, 태그 `v*` → zip + Release)
-- [x] 앱 버전 `CFBundleShortVersionString 1.7.0` / `CFBundleVersion 17`
+- [x] 앱 버전 `CFBundleShortVersionString 1.7.1` / `CFBundleVersion 18`
 - [x] `git init` 및 `https://github.com/karanglass24-lang/akkim` push
 - [ ] 폴더명 `battery-limit` → `akkim` 정리 (선택)
 - [x] 태그 푸시(`v1.0.0`, `v1.0.1`) 후 Release 자산(`Akkim.zip`, `.sha256`) 확인

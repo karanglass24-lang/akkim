@@ -209,33 +209,66 @@ final class ChargeLimitController: ObservableObject {
             bridgeProbe = nil
 
             // 1) Direct system control (macOS 26.4+, no Shortcuts setup).
-            // 2) Shortcuts bridge as a fallback.
+            // 2) Shortcuts bridge.
+            // 3) SMC helper. Each step falls back to the next one: the direct
+            //    API can be refused on machines where the helper works fine.
             let useSystem = capability.systemControl
             var useBridge = false
             if !useSystem, capability.platformSupportsSet {
                 useBridge = await bridgeAvailable()
             }
 
-            if useSystem || useBridge {
-                if useSystem {
+            var handled = false
+            var helperHandled = false
+            var systemError: Error?
+
+            if useSystem {
+                do {
                     try SystemChargeLimit.setLimit(percent)
-                } else if let bridge {
-                    try await bridge.set(percent: percent)
+                    handled = true
+                } catch {
+                    systemError = error
                 }
-                // Keep the helper in sync too: on CHIE machines a stale helper limit
-                // would keep cutting AC even though the system limit changed.
-                if limiter.installed {
-                    if limiter.enabled { limiter.setLimit(percent) } else { await limiter.enable(limit: percent) }
+            }
+
+            if !handled, useBridge, let bridge {
+                try await bridge.set(percent: percent)
+                handled = true
+            }
+
+            if !handled, limiter.installed {
+                if limiter.enabled {
+                    limiter.setLimit(percent)
+                } else {
+                    await limiter.enable(limit: percent)
                 }
-                // Shortcuts has no synchronous result; give the system a moment and
-                // refresh from the source of truth. The direct call is synchronous
-                // but powerd still needs a beat to apply the new limit.
-                try? await Task.sleep(nanoseconds: useBridge ? 1_500_000_000 : 400_000_000)
-            } else if limiter.installed {
-                if limiter.enabled { limiter.setLimit(percent) } else { await limiter.enable(limit: percent) }
-            } else {
+                helperHandled = true
+                handled = true
+            }
+
+            guard handled else {
                 lastError = .failed(L10n.t(.errHelperNotInstalled))
                 return
+            }
+
+            // When the system limit moved, keep the helper's own limit aligned:
+            // on CHIE machines a stale helper limit would keep cutting AC.
+            if useSystem, !helperHandled, limiter.installed {
+                if limiter.enabled {
+                    limiter.setLimit(percent)
+                } else {
+                    await limiter.enable(limit: percent)
+                }
+            }
+            // Shortcuts has no synchronous result; give the system a moment and
+            // refresh from the source of truth. The direct call is synchronous
+            // but powerd still needs a beat to apply the new limit.
+            try? await Task.sleep(nanoseconds: useBridge ? 1_500_000_000 : 400_000_000)
+
+            // Surface a direct-control failure without hiding that the helper
+            // may have taken over.
+            if let systemError {
+                lastError = .failed(systemError.localizedDescription)
             }
             await refresh()
         } catch {

@@ -36,6 +36,29 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             return
         }
 
+        // `Akkim --diagnose`: read-only report for troubleshooting another Mac.
+        if CommandLine.arguments.contains("--diagnose") {
+            let controller = container.chargeLimitController
+            let limiter = container.smcLimiter
+            Task { @MainActor in
+                print(await Diagnostics.report(controller: controller, limiter: limiter))
+                exit(0)
+            }
+            return
+        }
+
+        // `Akkim --install-helper`: same admin install the UI performs, so a
+        // broken helper can be repaired from Terminal without reinstalling.
+        if CommandLine.arguments.contains("--install-helper") {
+            let limiter = container.smcLimiter
+            limiter.install { ok in
+                print("install-helper -> \(ok ? "OK" : "FAILED")")
+                if !ok, let err = limiter.lastError { print("error: \(err)") }
+                exit(ok ? 0 : 1)
+            }
+            return
+        }
+
         // Debug hook: `Akkim --system-limit 85` writes the macOS Charge Limit
         // directly and prints the value read back. Used to verify the PowerUI
         // path without the Shortcuts setup.

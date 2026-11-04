@@ -207,6 +207,36 @@ ioreg -rn AppleSmartBattery | grep -E '"(IsCharging|CurrentCapacity)"'
 
 ## 9. 문제 해결
 
+### 다른 맥에서 "충전 제한 사용"이 켜지지 않을 때
+
+터미널에서 진단을 한 번 돌려보세요. 관리자 권한도, 네트워크도 필요 없습니다.
+
+```bash
+/Applications/Akkim.app/Contents/MacOS/Akkim --diagnose
+```
+
+출력의 `Capability` / `Helper` / `Hint` 줄이 원인을 알려 줍니다.
+
+- `Helper: launchd=NO` → 헬퍼가 설치되지 않았습니다. 아래 명령으로 설치합니다
+  (관리자 인증 창이 뜹니다):
+
+  ```bash
+  /Applications/Akkim.app/Contents/MacOS/Akkim --install-helper
+  ```
+
+- `Quarantine: YES` → Gatekeeper가 번들 안의 헬퍼 실행을 막습니다:
+
+  ```bash
+  xattr -dr com.apple.quarantine /Applications/Akkim.app
+  ```
+
+- `Capability: systemControl=false` + `platformSupportsSet=false` →
+  macOS 26.4 미만이거나 Intel Mac입니다. 헬퍼 설치로 해결하세요.
+- `Helper: … running=NO` → 데몬이 죽어 있습니다. `--install-helper`로 재설치하거나
+  `/var/log/akkim-helper.log`를 확인하세요.
+
+진단 결과를 그대로 복사해 이슈로 올려도 됩니다.
+
 ### "helper is not responding"
 
 ```bash
