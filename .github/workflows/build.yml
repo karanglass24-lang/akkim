@@ -9,7 +9,8 @@ on:
 jobs:
   build:
     # Apple Silicon runner: the app targets arm64 only.
-    runs-on: macos-14
+    # macos-26 brings the macOS 26 SDK (Liquid Glass APIs).
+    runs-on: macos-26
 
     steps:
       - uses: actions/checkout@v4
