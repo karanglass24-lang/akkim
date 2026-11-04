@@ -595,11 +595,33 @@ macOS 26의 Liquid Glass를 패널에 처음 적용했다.
   미만에서는 `VisualEffectView(material: .popover)`.
 - `MenuBarPanel`의 `.background(VisualEffectView(material: .popover))` 를
   `.akkimPanelBackdrop()` 로 교체 → 컨트롤 센터 느낌의 전면 유리.
-- **스크린샷 파이프라인 경고**: `cacheDisplay` 는 유리를 합성하지 못한다.
-  유리 적용 후 `--screenshot` 결과가 **거의 빈 PNG(≈3.4KB)** 가 되는 것이
-  오히려 "유리가 켜졌다"는 반증이다. README용 패널 캡처는 `screencapture`
-  또는 사용자 화면으로 대체해야 한다.
 - 버전 1.8.0(21) → **1.8.1(22)**, 릴리스 자산 3종 재확인(latest 다운로드 200).
+
+### 5.25 1.8.1 패널 내용 전체 사라짐 수정 (2026-11-05)
+
+**증상**: 1.8.1에서 팝오버가 빈 유리판만 보이고 정보가 하나도 표시되지 않음.
+
+**원인**: `akkimPanelBackdrop()` 가 `self` 를 쓰지 않고
+`Color.clear.glassEffect(...)` / `VisualEffectView` **만** 반환했다.
+수정자가 패널 콘텐츠를 배경으로 깔지 않고 **콘텐츠 자체를 배경으로 교체**한 것.
+
+- 수정: 26+ `self.background { Color.clear.glassEffect(...) }`,
+  미만 `self.background(VisualEffectView(material: .popover))`.
+- **교훈**: 5.24에서 "`--screenshot` 이 거의 빈 PNG(≈3.4KB)인 것이 유리가 켜졌다는
+  반증"이라고 기록했는데 **틀렸다**. 빈 PNG는 콘텐츠가 사라졌다는 증거였다.
+  `cacheDisplay` 는 유리 배경만 못 그릴 뿐 텍스트·컨트롤은 정상으로 그린다
+  (수정 후 스냅샷 ≈100KB, 모든 섹션 표시). 스냅샷이 비면 **버그로 간주**할 것.
+- 함께 수정:
+  - 전력 카드: 방전 중에도 라벨이 "충전"이던 문제 → `batteryWatts < -0.5` 이면 "방전 중".
+  - 팝오버 전역 이벤트 모니터: Esc 등으로 닫힐 때 해제되지 않아 재오픈 시 누수
+    → `popoverDidClose` 에서 `stopEventMonitor()`.
+  - 자체 업데이터 swap 스크립트: `mv` 실패 시 앱이 종료된 채 재실행되지 않음
+    → 실패 경로에서도 기존 앱을 `open`.
+- **미해결(설계 결정 필요)**: CHTE가 없고 CHIE만 있는 맥에서 헬퍼는 "hold"를
+  **어댑터 분리(CHIE)** 로 구현한다. macOS 26.4+ 네이티브 Charge Limit이 이미
+  85%를 유지하고 있는데도 헬퍼가 AC를 끊어 고부하(≈77 W)에서 배터리로
+  구동되며 85→80→85% 세일링을 수 분 간격으로 반복한다(로그 확인). 배터리 보호
+  목적과 반대이므로, 네이티브 제어 가능 시 CHIE hold를 끄는 방안을 검토할 것.
 
 ---
 
@@ -870,8 +892,9 @@ EOF
   ```
 - **Liquid Glass**: 새 UI는 `GlassStyle.swift` 헬퍼(`akkimGlass`,
   `akkimGlassButton`, `akkimPanelBackdrop`)만 사용한다. `glassEffect` 를 직접
-  호출하지 말 것(폴백 누락). 배경을 유리로 덮으면 `--screenshot` 이 빈 이미지가
-  되므로, 레이아웃 검증은 유리 제거 상태나 `screencapture` 로 한다.
+  호출하지 말 것(폴백 누락). 배경용 수정자는 반드시 `self.background { … }` 로
+  콘텐츠를 유지할 것(5.25). `--screenshot` 은 유리 배경만 빠지고 내용은 보여야
+  정상이며, 빈 이미지면 버그다.
 - **CI 러너**: Liquid Glass API 때문에 `macos-26` 이상이 필수다. `macos-14` 로
   되돌리면 릴리스 빌드가 깨진다. (5.23 참고)
 - **버전 올리기**: `Resources/Info.plist` 의 `CFBundleShortVersionString` 과

@@ -31,9 +31,11 @@ extension View {
     @ViewBuilder
     func akkimPanelBackdrop() -> some View {
         if #available(macOS 26.0, *) {
-            Color.clear.glassEffect(.regular, in: RoundedRectangle(cornerRadius: 12))
+            self.background {
+                Color.clear.glassEffect(.regular, in: RoundedRectangle(cornerRadius: 12))
+            }
         } else {
-            VisualEffectView(material: .popover)
+            self.background(VisualEffectView(material: .popover))
         }
     }
 }

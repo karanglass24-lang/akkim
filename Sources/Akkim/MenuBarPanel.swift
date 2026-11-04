@@ -221,7 +221,7 @@ struct MenuBarPanel: View {
                 LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
                     MetricCard(
                         icon: "bolt.fill",
-                        label: L10n.t(.charging),
+                        label: L10n.t((stream.latest?.batteryWatts ?? 0) < -0.5 ? .dischargingShort : .charging),
                         value: stream.latest.map { String(format: "%.1f W", abs($0.batteryWatts)) } ?? "--",
                         color: stream.latest?.status == .charging ? .green : .gray
                     )

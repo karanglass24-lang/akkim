@@ -102,6 +102,7 @@ final class StatusBarController: NSObject, NSPopoverDelegate {
 
     func popoverDidClose(_ notification: Notification) {
         chargeLimit.stopPolling()
+        stopEventMonitor()
     }
 
     #if DEBUG

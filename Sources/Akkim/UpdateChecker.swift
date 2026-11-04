@@ -177,8 +177,8 @@ final class UpdateChecker: ObservableObject {
         SRC="\(newApp.path)"
         OLD="$DST.replaced"
         rm -rf "$OLD"
-        if ! mv "$DST" "$OLD"; then exit 1; fi
-        if ! mv "$SRC" "$DST"; then mv "$OLD" "$DST"; exit 1; fi
+        if ! mv "$DST" "$OLD"; then /usr/bin/open "$DST"; exit 1; fi
+        if ! mv "$SRC" "$DST"; then mv "$OLD" "$DST"; /usr/bin/open "$DST"; exit 1; fi
         rm -rf "$OLD"
         /usr/bin/open "$DST"
         """

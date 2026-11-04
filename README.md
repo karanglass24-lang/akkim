@@ -116,8 +116,8 @@ macOS SDKs.
   with an `.ultraThinMaterial` / popover-material fallback on older systems
 - Two panel tabs (Charge / Monitor) and four settings tabs (General, Charge limit,
   Panel sections, About); sections in the panel collapse and remember their state
-- Note: the built-in `--screenshot` hook cannot composite Liquid Glass, so its panel
-  snapshot comes out blank on macOS 26+. That is expected, not a rendering bug.
+- Note: the built-in `--screenshot` hook cannot composite Liquid Glass, so the glass
+  backdrop is missing from its panel snapshot; the panel contents still render.
 
 ## Requirements
 
