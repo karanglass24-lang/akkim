@@ -18,6 +18,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // Debug hook: `Akkim --system-limit 85` writes the macOS Charge Limit
+        // directly and prints the value read back. Used to verify the PowerUI
+        // path without the Shortcuts setup.
+        if let idx = CommandLine.arguments.firstIndex(of: "--system-limit"),
+           CommandLine.arguments.count > idx + 1,
+           let value = Int(CommandLine.arguments[idx + 1]) {
+            do {
+                try SystemChargeLimit.setLimit(value)
+                print("system-limit -> \(SystemChargeLimit.currentLimit() ?? -1)")
+            } catch {
+                print("system-limit failed: \(error.localizedDescription)")
+            }
+            exit(0)
+        }
+
         NSApp.setActivationPolicy(.accessory)
         UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { granted, _ in
             if granted {

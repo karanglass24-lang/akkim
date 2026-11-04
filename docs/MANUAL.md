@@ -88,29 +88,33 @@ tail -n 20 /var/log/akkim-helper.log
 ## 4. macOS 기본 충전 제한과 함께 쓰기 (macOS 26.4+)
 
 macOS 26.4부터는 시스템 자체 **Charge Limit**(80–100%)이 있습니다. 이 값은 `powerd`가
-강제하며, 앱이 직접 바꿀 수 있는 공개 API/CLI는 없습니다. 대신 **Shortcuts**로 연동할 수 있습니다.
+강제하므로, 앱 제한과 다르면 앱이 충전을 허용해도 OS가 충전을 시작하지 않습니다.
 
-### 왜 필요한가
+### 아낌이 자동으로 맞춥니다 (1.6.0+)
 
-시스템 제한이 앱 제한보다 낮으면(예: 시스템 80%, 앱 85%) 앱이 충전을 허용해도
-OS가 충전을 시작하지 않습니다. 이때 패널은 **"macOS가 충전을 보류 중"** 경고와
-**시스템 설정 열기** 버튼을 표시합니다.
+아낌은 Apple의 충전 제한 API를 **직접 호출**합니다. 별도 설정이 필요 없습니다.
 
-### 값이 고정된 단축어 5개 만들기
+- 앱에서 제한을 바꾸면 **macOS 충전 제한도 같은 값**으로 바뀝니다.
+- 설정 › 충전 제한에서 현재 **macOS 충전 제한** 값을 볼 수 있습니다.
+- 시스템 제한이 앱 제한보다 **낮으면 자동으로 올립니다.**(충전 보류의 원인 제거)
+- **만충전/보정** 중에는 시스템 제한을 100%로 올렸다가 끝나면 다시 되돌립니다.
+- 시스템 제한을 직접 바꿨다면 패널의 **시스템 제한 동기화** 버튼으로 맞출 수 있습니다.
 
-Apple의 **“Set Battery Charge Limit”** 동작은 값이 **고정 퍼센트**만 지원합니다.
-(AlDente의 “Set Charge Limit”과 이름이 비슷하니 주의하세요.) 그래서 80/85/90/95/100용
-단축어를 5개 만듭니다.
+> 공개 API가 아닌 Apple 내부 API(`PowerUISmartChargeClient`)를 사용합니다.
+> macOS 업데이트로 동작이 바뀌면 앱은 자동으로 이 경로를 끄고, 그때는 아래
+> Shortcuts 방법으로 대신할 수 있습니다.
 
-1. Shortcuts에서 새 단축어 → 동작 **“Set Battery Charge Limit”** 추가 → 값 **80%**
+### Shortcuts로 연동하는 방법 (직접 제어가 안 될 때)
+
+설정 › 충전 제한에서 **“직접 제어”가 아니라 “연동되지 않음”** 으로 표시될 때만
+필요합니다.
+
+1. Shortcuts에서 새 단축어 → Apple 동작 **“Set Battery Charge Limit”** 추가 → 값 **80%**
+   (AlDente의 “Set Charge Limit”과 이름이 비슷하니 주의하세요.)
 2. 이름을 **`SetBatteryChargeLimit80`** 로 저장
 3. 같은 방법으로 85/90/95/100을 만들어 이름을
    `SetBatteryChargeLimit85`, `…90`, `…95`, `…100` 으로 저장
 4. 앱 설정 › 시스템 충전 제한 › **다시 확인** → “연동됨”
-5. 앱에서 제한을 바꾸면 해당 단축어가 실행되어 시스템 제한이 바뀝니다
-
-> 예전에 만든 `SetBatteryChargeLimit`(값 입력형) 단축어가 있으면, 5개 단축어가
-> 모두 있을 때 앱은 **고정 단축어를 우선** 사용합니다.
 
 > **AlDente와 동시 사용 금지**: AlDente Pro가 실행 중이면 두 앱이 같은 SMC 키를
 > 제어해 충전이 멈추거나 제한이 풀릴 수 있습니다. Akkim을 쓰는 동안에는 AlDente를
@@ -119,13 +123,11 @@ Apple의 **“Set Battery Charge Limit”** 동작은 값이 **고정 퍼센트*
 ### 연동 확인
 
 ```bash
+# Shortcuts 경로를 쓸 때
 shortcuts list | grep SetBatteryChargeLimit
-shortcuts run SetBatteryChargeLimit85     # 85%로 고정된 단축어
-```
+shortcuts run SetBatteryChargeLimit85
 
-실행 후 `ioreg`에서 충전이 재개되는지 확인할 수 있습니다.
-
-```bash
+# 현재 macOS 충전 제한 확인 (직접 제어)
 ioreg -rn AppleSmartBattery | grep -E '"(IsCharging|CurrentCapacity)"'
 ```
 

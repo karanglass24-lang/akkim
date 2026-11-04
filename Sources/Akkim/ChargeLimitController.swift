@@ -12,7 +12,10 @@ import Darwin
 final class ChargeLimitController: ObservableObject {
     @Published private(set) var state: ChargeLimitState = .unknown
     @Published private(set) var capability: ChargeLimitCapability = ChargeLimitCapability(
-        canRead: false, platformSupportsSet: false, bridgeConfigured: false, canSetInApp: false)
+        canRead: false, platformSupportsSet: false, bridgeConfigured: false,
+        systemControl: false, canSetInApp: false)
+    /// macOS's own Charge Limit as reported by the system (nil when unsupported).
+    @Published private(set) var systemLimit: Int?
     @Published private(set) var lastError: ChargeLimitError?
     @Published private(set) var isSetting = false
     @Published private(set) var calibrationStatus: CalibrationStatus?
@@ -24,6 +27,11 @@ final class ChargeLimitController: ObservableObject {
     @Published private(set) var systemHoldSuspected = false
 
     private var systemHoldSince: Date?
+
+    /// Set while Akkim has borrowed the system limit for a top-up / calibration,
+    /// so it can put the previous value back instead of overwriting a limit the
+    /// user chose in System Settings.
+    private var systemLimitRaised = false
 
     var onOpenOnboarding: (() -> Void)?
 
@@ -78,8 +86,12 @@ final class ChargeLimitController: ObservableObject {
         let limit = limiter.limit
         state = (enabled && installed) ? .limited(limit) : .unlimited
 
-        let bridgeConfigured = await bridgeAvailable()
-        capability = Self.computeCapability(bridgeConfigured: bridgeConfigured, helperInstalled: installed)
+        // macOS 26.4+ exposes its Charge Limit directly through PowerUI; prefer
+        // that over the Shortcuts bridge (no setup required).
+        capability = Self.computeCapability(
+            bridgeConfigured: await bridgeAvailable(),
+            helperInstalled: installed,
+            systemControl: SystemChargeLimit.isAvailable)
 
         // 보정 상태 갱신
         calibrationStatus = limiter.readCalibrationStatus()
@@ -109,6 +121,51 @@ final class ChargeLimitController: ObservableObject {
             limiter.setDischarge(false)
             AppSettings.shared.dischargeMode = false
             AppSettings.shared.save()
+        }
+
+        // macOS's own Charge Limit must never sit below the app's limit (that is
+        // what makes powerd hold charging), and a one-shot top-up or an active
+        // calibration needs 100%.
+        reconcileSystemLimit()
+    }
+
+    /// Keeps macOS's own Charge Limit from fighting the app.
+    ///
+    /// - a top-up or calibration raises it to 100% (and puts it back afterwards),
+    /// - a system limit *below* the app's limit is raised to the app's limit,
+    /// - a system limit above the app's limit is left alone: the helper holds
+    ///   charging there anyway, and it may be the user's own choice.
+    private func reconcileSystemLimit() {
+        guard SystemChargeLimit.isAvailable, let current = SystemChargeLimit.currentLimit() else {
+            systemLimit = nil
+            return
+        }
+        systemLimit = current
+
+        let fresh = helperStatus.map { !$0.isStale } ?? false
+        let daemonNeedsFull = fresh && (helperStatus?.reason == .topUp || helperStatus?.reason == .calibration)
+        let needsFull = isTopUpActive || daemonNeedsFull
+
+        let appLimit: Int? = {
+            if case .limited(let n) = state { return n }
+            return nil
+        }()
+
+        var desired: Int?
+        if needsFull {
+            if current < 100 { desired = 100 }
+        } else if systemLimitRaised {
+            desired = appLimit ?? 100
+        } else if let appLimit, current < appLimit {
+            desired = appLimit
+        }
+        guard let desired, desired != current, ChargeLimitConstants.steps.contains(desired) else { return }
+        do {
+            try SystemChargeLimit.setLimit(desired)
+            systemLimit = desired
+            systemLimitRaised = needsFull
+        } catch {
+            // powerd can be briefly busy; the next refresh retries.
         }
     }
 
@@ -143,8 +200,11 @@ final class ChargeLimitController: ObservableObject {
         defer { isSetting = false }
         limiter.disable()
         state = .unlimited   // optimistic: avoid the toggle snapping back before refresh
-        // Shortcuts-only path (macOS 26.4+, no helper): 100% means "no limit".
-        if !limiter.installed, capability.platformSupportsSet, let bridge, await bridgeAvailable() {
+        // 100% means "no limit" for both the system Charge Limit and Shortcuts.
+        if capability.systemControl {
+            do { try SystemChargeLimit.setLimit(100) }
+            catch { lastError = .failed(error.localizedDescription) }
+        } else if !limiter.installed, capability.platformSupportsSet, let bridge, await bridgeAvailable() {
             do { try await bridge.set(percent: 100) }
             catch { lastError = .failed(error.localizedDescription) }
         }
@@ -159,16 +219,30 @@ final class ChargeLimitController: ObservableObject {
         do {
             // The user may have just created the shortcut, so force a fresh probe.
             bridgeProbe = nil
-            if capability.platformSupportsSet, let bridge, await bridgeAvailable() {
-                try await bridge.set(percent: percent)
+
+            // 1) Direct system control (macOS 26.4+, no Shortcuts setup).
+            // 2) Shortcuts bridge as a fallback.
+            let useSystem = capability.systemControl
+            var useBridge = false
+            if !useSystem, capability.platformSupportsSet {
+                useBridge = await bridgeAvailable()
+            }
+
+            if useSystem || useBridge {
+                if useSystem {
+                    try SystemChargeLimit.setLimit(percent)
+                } else if let bridge {
+                    try await bridge.set(percent: percent)
+                }
                 // Keep the helper in sync too: on CHIE machines a stale helper limit
                 // would keep cutting AC even though the system limit changed.
                 if limiter.installed {
                     if limiter.enabled { limiter.setLimit(percent) } else { await limiter.enable(limit: percent) }
                 }
-                // Shortcuts URL scheme does not return a result synchronously; give the
-                // system a moment and refresh from the source of truth.
-                try? await Task.sleep(nanoseconds: 1_500_000_000)
+                // Shortcuts has no synchronous result; give the system a moment and
+                // refresh from the source of truth. The direct call is synchronous
+                // but powerd still needs a beat to apply the new limit.
+                try? await Task.sleep(nanoseconds: useBridge ? 1_500_000_000 : 400_000_000)
             } else if limiter.installed {
                 if limiter.enabled { limiter.setLimit(percent) } else { await limiter.enable(limit: percent) }
             } else {
@@ -180,6 +254,21 @@ final class ChargeLimitController: ObservableObject {
             lastError = .failed(error.localizedDescription)
             await refresh()
         }
+    }
+
+    /// Brings macOS's own Charge Limit back in line with this app's limit.
+    /// Only meaningful when the direct system control is available.
+    func syncSystemLimit() async {
+        guard capability.systemControl else { return }
+        let target: Int
+        if case .limited(let n) = state { target = n } else { target = 100 }
+        do {
+            try SystemChargeLimit.setLimit(target)
+        } catch {
+            lastError = .failed(error.localizedDescription)
+        }
+        try? await Task.sleep(nanoseconds: 400_000_000)
+        await refresh()
     }
 
     /// Called from the sample stream so the panel can warn without waiting for
@@ -307,16 +396,22 @@ final class ChargeLimitController: ObservableObject {
 
     // MARK: Capability
 
-    static func computeCapability(bridgeConfigured: Bool, helperInstalled: Bool) -> ChargeLimitCapability {
+    static func computeCapability(
+        bridgeConfigured: Bool,
+        helperInstalled: Bool,
+        systemControl: Bool
+    ) -> ChargeLimitCapability {
         let osOK = ProcessInfo.processInfo.isOperatingSystemAtLeast(
             OperatingSystemVersion(majorVersion: 26, minorVersion: 4, patchVersion: 0)
         )
         let platformSupportsSet = osOK && isAppleSiliconHardware()
-        let canSetInApp = helperInstalled || (platformSupportsSet && bridgeConfigured)
+        // Direct system control needs no helper and no Shortcuts.
+        let canSetInApp = helperInstalled || systemControl || (platformSupportsSet && bridgeConfigured)
         return ChargeLimitCapability(
             canRead: true,
             platformSupportsSet: platformSupportsSet,
             bridgeConfigured: bridgeConfigured,
+            systemControl: systemControl,
             canSetInApp: canSetInApp
         )
     }

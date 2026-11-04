@@ -114,6 +114,10 @@ enum LKey {
     case systemLimitNotLinked
     case systemLimitDetail
     case systemLimitSteps
+    case systemControlLinked
+    case systemControlValue
+    case systemControlUnavailable
+    case syncSystemLimit
     case alDenteWarning
     case openShortcutsApp
     case recheck
@@ -164,6 +168,8 @@ enum LKey {
     case errHelperNotInstalled
     case errShortcutBuild
     case errShortcutMissing
+    case errSystemControlUnavailable
+    case errSystemControlFailed
 }
 
 extension LKey {
@@ -306,6 +312,15 @@ extension LKey {
         case .systemLimitSteps:
             return ("In Shortcuts use Apple’s “Set Battery Charge Limit” action (not AlDente’s) and make five shortcuts named SetBatteryChargeLimit80, …85, …90, …95, …100.",
                     "Shortcuts에서 Apple의 ‘Set Battery Charge Limit’ 동작(AlDente의 ‘Set Charge Limit’ 아님)으로 값이 고정된 단축어 5개를 만들고 이름을 SetBatteryChargeLimit80, …85, …90, …95, …100으로 저장하세요.")
+        case .systemControlLinked:
+            return ("Direct control — Akkim also updates the macOS charge limit",
+                    "직접 제어 — 앱에서 바꾸면 macOS 충전 제한도 함께 바뀝니다")
+        case .systemControlValue:       return ("macOS charge limit: %d%%", "macOS 충전 제한: %d%%")
+        case .systemControlUnavailable:
+            return ("This macOS does not expose the charge limit API. Link it through Shortcuts instead.",
+                    "이 macOS에서는 충전 제한 API를 사용할 수 없습니다. Shortcuts로 연동하세요.")
+        case .syncSystemLimit:
+            return ("Sync macOS limit", "시스템 제한 동기화")
         case .alDenteWarning:
             return ("AlDente is running. Two charge controllers can fight over the battery — quit AlDente while using Akkim.",
                     "AlDente가 실행 중입니다. 두 앱이 충전 제어를 두고 충돌할 수 있으니 Akkim 사용 중에는 AlDente를 종료하세요.")
@@ -387,6 +402,12 @@ extension LKey {
         case .errShortcutMissing:
             return ("Could not open the shortcut. Create \"%@\" in the Shortcuts app.",
                     "단축어를 열지 못했습니다. Shortcuts 앱에서 \"%@\"을(를) 만들어 주세요.")
+        case .errSystemControlUnavailable:
+            return ("macOS charge limit control is not available on this system.",
+                    "이 시스템에서는 macOS 충전 제한을 직접 제어할 수 없습니다.")
+        case .errSystemControlFailed:
+            return ("Could not change the macOS charge limit.",
+                    "macOS 충전 제한을 변경하지 못했습니다.")
         }
     }
 }

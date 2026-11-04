@@ -61,10 +61,14 @@ The `release` workflow builds on a macOS runner, verifies the bundle, zips it as
   Totals cover time while the app is running (sleep and quit gaps are ignored).
 
 ### Charging Limit
-- **Linking the macOS 26.4+ system Charge Limit** through a one-time Shortcuts
-  shortcut lets the app update the system limit itself — no trip to System Settings
+- **Direct control of the macOS 26.4+ system Charge Limit** — Akkim keeps the
+  system limit in sync with its own (including 100% during a top-up or
+  calibration), so charging is never held back by a stale system value
+- Falls back to a Shortcuts bridge (`SetBatteryChargeLimit…`) when the system
+  API is unavailable on a future macOS
 - Apple Silicon Mac (M1–M4), macOS 13+
-- macOS 26.4+: native battery charge limit bridged via a Shortcuts action (`SetBatteryChargeLimit`)
+- macOS 26.4+: native charge limit driven directly; a Shortcuts action
+  (`SetBatteryChargeLimit`) is kept as a fallback
 - Fallback: SMC charge-control keys (`CHTE` / `CHIE`) via a root LaunchDaemon helper
 - Explicit **on/off switch** for the limit; turning it back on restores the last step
 - **Sailing mode**: hold at limit, recharge after dropping below `limit - deadband`
@@ -183,8 +187,8 @@ and hide unsupported controls:
 
 - **Xcode is required**: this project uses AppKit, SwiftUI, Swift Charts and IOKit.
   It cannot be built on Windows.
-- **Shortcuts bridge (macOS 26.4+)**: create a shortcut named `SetBatteryChargeLimit`
-  in Shortcuts before using the native path. The app shows an onboarding prompt.
+- **Shortcuts bridge (fallback)**: only shown when the direct system API is not
+  available; create five fixed shortcuts named `SetBatteryChargeLimit80` … `…100`.
 - **Discharge mode** requires the `CHIE` SMC key; on machines without it the toggle
   is disabled automatically (the helper reports `chieAvailable:false`).
 - **Top-up and heat protection** require the SMC helper (the Shortcuts-only path

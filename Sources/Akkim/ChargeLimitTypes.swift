@@ -51,6 +51,8 @@ struct ChargeLimitCapability: Equatable {
     let canRead: Bool
     let platformSupportsSet: Bool
     let bridgeConfigured: Bool
+    /// macOS exposes the charge-limit API directly (no Shortcuts needed).
+    let systemControl: Bool
     let canSetInApp: Bool
 }
 

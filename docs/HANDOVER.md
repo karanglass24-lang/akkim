@@ -31,7 +31,7 @@ SoC 차트, 사유 기반 알림**을 추가했습니다.
 | 안정성(P0) | JSON 원자적 쓰기, 데몬 last-good-config(약 60초), 권한 775/664 자동 교정, 서명 순서, 알림 게이팅, 구 데몬(`com.batterylimit.helper`) 제거 |
 | UX(P1) | 관리자 인증 비블로킹(`Process.terminationHandler`), 제한 on/off 토글, `shortcuts list` 프로브 캐싱 |
 | 이번 배치 | 헬퍼 상태 파일, 일시정지 사유, 원샷 만충전, 열 보호, 우클릭 빠른 메뉴, 메뉴바 표시 옵션, SoC 스파크라인, 알림 세분화 |
-| 지역화 | `LKey` **134개**, `LKey.text` exhaustive switch |
+| 지역화 | `LKey` **140개**, `LKey.text` exhaustive switch |
 | 패키징 | `scripts/package-app.sh`, ad-hoc 서명, MIT 고지 파일 번들 포함 |
 | CI | `.github/workflows/build.yml` (macos-14, build → package → signature/bundle 검증 → artifact) |
 
@@ -163,7 +163,7 @@ battery-limit/
 │   ├── MenuBarPanel.swift        # 팝오버 UI
 │   ├── SettingsView.swift
 │   ├── HistoryChartView.swift    # 전력 + SoC 차트
-│   ├── Localization.swift        # LKey 134개 (ko/en)
+│   ├── Localization.swift        # LKey 140개 (ko/en)
 │   ├── MenuBarIcon.swift         # 메뉴바 배터리 글리프(AppKit 직접 그리기)
 │   ├── BatteryHealthHistory.swift # 건강도 샘플 저장/추이
 │   ├── BatteryHealthChart.swift   # Swift Charts 건강도 영역 그래프
@@ -469,6 +469,28 @@ battery-limit/
 - 패널 **모니터** 탭: 에너지 사용량 · 배터리 건강도 · 최근 차트.
 - 팝오버 높이 계산에 충전 탭의 전력 그리드 높이를 반영했습니다.
 
+### 5.18 시스템 충전 제한 직접 제어 (2026-11-04)
+
+Shortcuts 없이 macOS Charge Limit을 바꿀 수 있는 경로를 찾아 적용했습니다.
+
+- **발견**: `PowerUISmartChargeClient`(PowerUI.framework)에
+  `getMCLLimitWithError:` / `setMCLLimit:error:` / `availableChargeLimitsWithError:` 가 있음.
+  Shortcuts의 `Set Battery Charge Limit` 액션이 쓰는 바로 그 객체입니다.
+- 프레임워크 바이너리는 dyld 캐시 안에 있어 디스크 파일이 없지만,
+  `dlopen("/System/Library/PrivateFrameworks/PowerUI.framework/PowerUI")` 로
+  **로드는 성공**합니다(실기기 확인).
+- `Sources/Akkim/SystemChargeLimit.swift` 가 런타임에서 SEL 존재를 검사한 뒤
+  `unsafeBitCast` 으로 호출합니다. API가 사라지면 `isAvailable == false` 로 떨어지고
+  Shortcuts 브리지로 폴백합니다.
+- 동기화 규칙(`ChargeLimitController.reconcileSystemLimit()`):
+  - 시스템 제한 < 앱 제한 → 앱 제한으로 올림 (충전 보류의 원인)
+  - 시스템 제한 > 앱 제한 → 그대로 둠 (사용자 선택일 수 있음)
+  - 만충전/보정 중 → 100%로 올렸다가 끝나면 원래 값으로 복원 (`systemLimitRaised`)
+- 실측: `setMCLLimit(85)` → `/Library/Preferences/com.apple.powerd.charging.plist`
+  의 `policies.soclimit` 가 85로 바뀌고(powerd가 기록), 그리고 약 120초 뒤
+  `IsCharging=0 → 1`(79%→80%). `availableChargeLimits` = 80/85/90/95/100.
+- 디버그 훅: `Akkim --system-limit 85` 로 직접 검증 가능(`AppDelegate`).
+
 ---
 
 ## 6. 실기기 테스트 체크리스트
@@ -686,7 +708,7 @@ EOF
 ### 9.2 저장소/배포
 
 - [x] 릴리스 워크플로 추가 (`.github/workflows/release.yml`, 태그 `v*` → zip + Release)
-- [x] 앱 버전 `CFBundleShortVersionString 1.5.3` / `CFBundleVersion 14`
+- [x] 앱 버전 `CFBundleShortVersionString 1.6.0` / `CFBundleVersion 15`
 - [x] `git init` 및 `https://github.com/karanglass24-lang/akkim` push
 - [ ] 폴더명 `battery-limit` → `akkim` 정리 (선택)
 - [x] 태그 푸시(`v1.0.0`, `v1.0.1`) 후 Release 자산(`Akkim.zip`, `.sha256`) 확인
@@ -712,7 +734,7 @@ EOF
 
 - **UI 문자열**: 반드시 `Sources/Akkim/Localization.swift`의 `LKey`에 추가.
   `LKey.text`는 exhaustive switch이므로 번역 누락 시 컴파일 실패.
-  현재 134개.
+  현재 140개.
 - **리소스 없음**: `.lproj`를 쓰지 않으므로 `Package.swift`에 `resources:`를 추가하지 말 것.
 - **동시성**: `SMCChargeLimiter`, `ChargeLimitController`, `AppSettings`,
   `StatusBarController`, `SampleStream`은 `@MainActor`.

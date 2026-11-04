@@ -172,6 +172,13 @@ struct MenuBarPanel: View {
 
     // MARK: - Metrics
 
+    /// System-hold warning line: base hint plus the macOS limit we read back.
+    private var systemHoldText: String {
+        let base = L10n.t(.systemHoldHint)
+        guard let sys = chargeLimit.systemLimit else { return base }
+        return base + " " + String(format: L10n.t(.systemControlValue), sys)
+    }
+
     /// Section header with a chevron; clicking it collapses the section and the
     /// collapsed state is persisted in `AppSettings`.
     @ViewBuilder
@@ -612,15 +619,25 @@ struct MenuBarPanel: View {
                         HStack(spacing: 6) {
                             Image(systemName: "exclamationmark.triangle.fill")
                                 .foregroundStyle(.orange)
-                            Text(L10n.t(.systemHoldHint))
+                            Text(systemHoldText)
                                 .font(.caption2)
                                 .foregroundStyle(.secondary)
+                                .fixedSize(horizontal: false, vertical: true)
                         }
-                        Button(L10n.t(.openSystemSettings)) {
-                            chargeLimit.openSystemBatterySettings()
+                        HStack(spacing: 12) {
+                            if chargeLimit.capability.systemControl {
+                                Button(L10n.t(.syncSystemLimit)) {
+                                    Task { await chargeLimit.syncSystemLimit() }
+                                }
+                                .buttonStyle(.link)
+                                .font(.caption2)
+                            }
+                            Button(L10n.t(.openSystemSettings)) {
+                                chargeLimit.openSystemBatterySettings()
+                            }
+                            .buttonStyle(.link)
+                            .font(.caption2)
                         }
-                        .buttonStyle(.link)
-                        .font(.caption2)
                     }
                     .padding(.horizontal, 16)
                 }

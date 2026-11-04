@@ -160,22 +160,35 @@ struct SettingsView: View {
     private var systemLimitBox: some View {
         GroupBox(L10n.t(.systemLimit)) {
             VStack(alignment: .leading, spacing: 10) {
+                let linked = chargeLimit.capability.systemControl
+                    || chargeLimit.capability.bridgeConfigured
+
                 HStack(spacing: 6) {
-                    Image(systemName: chargeLimit.capability.bridgeConfigured
+                    Image(systemName: linked
                           ? "checkmark.circle.fill" : "exclamationmark.circle")
-                        .foregroundStyle(chargeLimit.capability.bridgeConfigured ? .green : .orange)
-                    Text(chargeLimit.capability.bridgeConfigured
-                         ? L10n.t(.systemLimitLinked)
-                         : L10n.t(.systemLimitNotLinked))
+                        .foregroundStyle(linked ? .green : .orange)
+                    Text(chargeLimit.capability.systemControl
+                         ? L10n.t(.systemControlLinked)
+                         : linked ? L10n.t(.systemLimitLinked)
+                                  : L10n.t(.systemLimitNotLinked))
                     Spacer()
                     Button(L10n.t(.recheck)) {
                         Task { await chargeLimit.recheckBridge() }
                     }
                     .font(.caption)
                 }
-                Text(L10n.t(.systemLimitDetail))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+
+                if let systemLimit = chargeLimit.systemLimit {
+                    Text(String(format: L10n.t(.systemControlValue), systemLimit))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+
+                if !linked {
+                    Text(L10n.t(.systemLimitDetail))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
 
                 if alDenteRunning {
                     HStack(spacing: 6) {
@@ -186,7 +199,7 @@ struct SettingsView: View {
                             .foregroundStyle(.orange)
                     }
                 }
-                if !chargeLimit.capability.bridgeConfigured {
+                if !linked {
                     Text(L10n.t(.systemLimitSteps))
                         .font(.caption2)
                         .foregroundStyle(.secondary)
