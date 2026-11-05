@@ -35,7 +35,7 @@ Apple Silicon Mac용 메뉴바 앱. 충전 제한은 macOS 26.4+의 네이티브
 | 시스템 제어 | macOS 26.4+ 네이티브 Charge Limit 직접 제어(PowerUI), Shortcuts/SMC 폴백 |
 | 배포 | 자체 업데이터 + `Akkim.pkg`(앱·헬퍼 일괄 설치) + `Akkim.zip` + `.sha256` |
 | UI | Liquid Glass(패널 전면, macOS 26+), 패널 2탭 / 설정 4탭, 한·영 |
-| 현재 버전 | 배포 1.8.2 (24) · 로컬 **1.8.3 (25)** — 5.28 포함, 미배포 |
+| 현재 버전 | **1.8.3 (build 25)** 배포 (2026-11-05) — 5.25–5.28 포함 |
 | CI | `.github/workflows/build.yml` (macos-26, build → package → signature/bundle 검증 → artifact) |
 
 ### 1.2 아직 검증되지 않은 것
@@ -901,18 +901,18 @@ EOF
 
 - [x] 릴리스 워크플로 추가 (`.github/workflows/release.yml`, 태그 `v*` → pkg + zip + Release)
 - [x] 러너 `macos-14` → **`macos-26`** (Liquid Glass API 필요, build/release 공통)
-- [x] 앱 버전 `CFBundleShortVersionString 1.8.2` / `CFBundleVersion 24`
+- [x] 앱 버전 `CFBundleShortVersionString 1.8.3` / `CFBundleVersion 25`
 - [x] Liquid Glass UI 1차(1.8.0): `GlassStyle.swift`의 `akkimGlass(cornerRadius:)`
   — 26+ `.glassEffect(.regular, in:)` + `quaternary` 스트로크, 미만 `.ultraThinMaterial`.
   `akkimGlassButton()` — 26+ `GlassButtonStyle`, 미만 `.bordered`.
   적용: 전력 MetricCard 3종, 만충전 버튼.
 - [x] Liquid Glass 확장(1.8.1): `akkimPanelBackdrop()` 로 **패널 배경 전체**를 유리로.
   미만은 `.popover` 머티리얼 폴백. 상세는 5.23/5.24.
-- [x] 릴리스 `v1.0.0` ~ `v1.8.2` 발행, 에셋(pkg/zip/sha256) 및 latest URL 200 확인
+- [x] 릴리스 `v1.0.0` ~ `v1.8.3` 발행, 에셋(pkg/zip/sha256) 및 latest URL 200 확인
 - [x] 자체 업데이터 실증(1.6.0 → 1.6.1 다운로드·검증·교체·재시작)
 - [x] 고정 URL: `/releases/latest/download/Akkim.{pkg,zip}`
 - [x] `git init` 및 `https://github.com/karanglass24-lang/akkim` push
-- [x] 태그 푸시 후 Release 자산 확인 (`v1.0.0` ~ `v1.8.2`)
+- [x] 태그 푸시 후 Release 자산 확인 (`v1.0.0` ~ `v1.8.3`)
 - [ ] 폴더명 `battery-limit` → `akkim` 정리 (선택)
 - [ ] Developer ID 서명 + notarization (경고 없는 배포가 필요해지면)
 
