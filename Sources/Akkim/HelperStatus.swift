@@ -30,6 +30,16 @@ struct HelperStatus: Equatable {
     let enabled: Bool
     let limit: Int
     let topUp: Bool
+    /// 1 for daemons built before the field existed.
+    let helperVersion: Int
+    /// The daemon has cut the adapter (CHIE) to hold: running on battery while plugged in.
+    let adapterCut: Bool
+
+    /// Must equal `helperVersion` in `Sources/AkkimHelper/main.swift`
+    /// (`scripts/package-app.sh` refuses to build when they differ).
+    static let expectedHelperVersion = 2
+
+    var isOutdated: Bool { helperVersion < Self.expectedHelperVersion }
 
     static let path = "/Users/Shared/Akkim/helper-state.json"
 
@@ -69,7 +79,12 @@ struct HelperStatus: Equatable {
             reason: Reason(rawValue: (j["reason"] as? String) ?? "") ?? .off,
             enabled: (j["enabled"] as? Bool) ?? false,
             limit: (j["limit"] as? Int) ?? 80,
-            topUp: (j["topUp"] as? Bool) ?? false
+            topUp: (j["topUp"] as? Bool) ?? false,
+            helperVersion: (j["helperVersion"] as? Int) ?? 1,
+            // Older daemons do not report it; a CHIE hold always cut the adapter.
+            adapterCut: (j["adapterCut"] as? Bool)
+                ?? ((j["actuator"] as? String) == "CHIE" && ((j["holding"] as? Bool) ?? false)
+                    && !((j["discharging"] as? Bool) ?? false))
         )
     }
 }

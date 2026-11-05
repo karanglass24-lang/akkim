@@ -54,3 +54,15 @@ jobs:
           name: Akkim-app
           path: dist/Akkim.app
           if-no-files-found: error
+
+      # Last: it rebuilds dist/Akkim.app as a debug bundle.
+      - name: Panel must not render blank
+        run: bash scripts/check-panel-snapshot.sh
+
+      - name: Upload panel snapshot
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: panel-snapshot
+          path: /private/var/tmp/akkim-panel.png
+          if-no-files-found: warn

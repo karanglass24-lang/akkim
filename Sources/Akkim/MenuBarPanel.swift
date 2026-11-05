@@ -20,6 +20,10 @@ struct MenuBarPanel: View {
         VStack(alignment: .leading, spacing: 0) {
             headerSection
             Divider()
+            if chargeLimit.helperOutdated {
+                helperUpdateBanner
+                Divider()
+            }
             panelTabPicker
             Divider()
 
@@ -79,6 +83,23 @@ struct MenuBarPanel: View {
         .padding(.vertical, 8)
     }
 
+    private var helperUpdateBanner: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "arrow.triangle.2.circlepath")
+                .foregroundStyle(.orange)
+            Text(L10n.t(.helperOutdated))
+                .font(.caption)
+            Spacer()
+            Button(L10n.t(.helperUpdateButton)) {
+                Task { await chargeLimit.updateHelper() }
+            }
+            .controlSize(.small)
+            .disabled(chargeLimit.isUpdatingHelper)
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 8)
+    }
+
     private var sectionsHiddenHint: some View {
         Text(L10n.t(.sectionsHiddenHint))
             .font(.caption2)
@@ -107,14 +128,21 @@ struct MenuBarPanel: View {
                     .monospacedDigit()
 
                 if let reason = reasonText {
+                    let cut = chargeLimit.adapterCutWarning
                     HStack(spacing: 4) {
-                        Image(systemName: "info.circle")
+                        Image(systemName: cut ? "exclamationmark.triangle.fill" : "info.circle")
                             .font(.system(size: 10))
                         Text(reason)
                             .lineLimit(1)
                     }
                     .font(.caption2)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(cut ? AnyShapeStyle(.orange) : AnyShapeStyle(.secondary))
+                    if cut {
+                        Text(L10n.t(.adapterCutHint))
+                            .font(.caption2)
+                            .foregroundStyle(.orange)
+                            .lineLimit(1)
+                    }
                 } else if chargeLimit.helperUnresponsive {
                     HStack(spacing: 4) {
                         Image(systemName: "exclamationmark.triangle.fill")

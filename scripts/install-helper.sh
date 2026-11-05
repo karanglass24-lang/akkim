@@ -59,7 +59,10 @@ install() {
   cp "$BIN" "$HELPER" || { echo "ERR cp helper"; exit 13; }
   xattr -dr com.apple.quarantine "$HELPER" 2>/dev/null || true
   # Sign first: a 544 (read-only) binary can no longer be modified by codesign.
-  codesign --force --sign - "$HELPER" 2>&1 | sed 's/^/    codesign: /' || true
+  # Keep a valid (e.g. Developer ID) signature; ad-hoc sign only unsigned copies.
+  if ! codesign --verify "$HELPER" 2>/dev/null; then
+    codesign --force --sign - "$HELPER" 2>&1 | sed 's/^/    codesign: /' || true
+  fi
   chown root:wheel "$HELPER"; chmod 544 "$HELPER"
 
   echo "==> write $PLIST"

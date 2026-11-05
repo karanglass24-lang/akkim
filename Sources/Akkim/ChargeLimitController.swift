@@ -400,13 +400,38 @@ final class ChargeLimitController: ObservableObject {
         return status.isStale
     }
 
+    /// Plugged in but running on battery because the daemon cut the adapter.
+    var adapterCutWarning: Bool {
+        guard let status = helperStatus, !status.isStale else { return false }
+        return status.adapterCut
+    }
+
+    /// The running daemon predates this app; its fixes need a reinstall.
+    var helperOutdated: Bool {
+        guard limiter.installed, let status = helperStatus, !status.isStale else { return false }
+        return status.isOutdated
+    }
+
+    @Published private(set) var isUpdatingHelper = false
+
+    func updateHelper() async {
+        guard !isUpdatingHelper else { return }
+        isUpdatingHelper = true
+        defer { isUpdatingHelper = false }
+        lastError = nil
+        if !(await limiter.reinstall()) {
+            lastError = .failed(limiter.lastError ?? L10n.t(.helperUpdateFailed))
+        }
+        await refresh()
+    }
+
     /// Human-readable pause reason, or nil when nothing notable is happening.
     var reasonKey: LKey? {
         guard let status = helperStatus, !status.isStale else { return nil }
         switch status.reason {
         case .limit:
             // CHIE fallback: the daemon cuts AC power instead of holding the charge.
-            return status.actuator == "CHIE" ? .reasonLimitAdapterOff : .reasonLimit
+            return status.adapterCut ? .reasonLimitAdapterOff : .reasonLimit
         case .heat: return .reasonHeat
         case .calibration: return .reasonCalibration
         case .topUp: return .reasonTopUp

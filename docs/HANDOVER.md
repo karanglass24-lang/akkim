@@ -35,7 +35,7 @@ Apple Silicon Mac용 메뉴바 앱. 충전 제한은 macOS 26.4+의 네이티브
 | 시스템 제어 | macOS 26.4+ 네이티브 Charge Limit 직접 제어(PowerUI), Shortcuts/SMC 폴백 |
 | 배포 | 자체 업데이터 + `Akkim.pkg`(앱·헬퍼 일괄 설치) + `Akkim.zip` + `.sha256` |
 | UI | Liquid Glass(패널 전면, macOS 26+), 패널 2탭 / 설정 4탭, 한·영 |
-| 현재 버전 | 배포 1.8.1 (22) · 로컬 **1.8.2 (23)** — 미배포, 5.25·5.26 포함 |
+| 현재 버전 | 배포 1.8.1 (22) · 로컬 **1.8.2 (24)** — 미배포, 5.25–5.27 포함 |
 | CI | `.github/workflows/build.yml` (macos-26, build → package → signature/bundle 검증 → artifact) |
 
 ### 1.2 아직 검증되지 않은 것
@@ -635,6 +635,36 @@ macOS 26의 Liquid Glass를 패널에 처음 적용했다.
 - 함께 수정: 열 보호 진입 첫 주기에 실제로 hold를 쓰지 않던 버그
   (`holdChargingForHeat()` 를 매 주기 호출, CHIE 맥에서는 제한 아래에서도 충전 정지 필요).
 - **헬퍼 바이너리가 바뀌었으므로 재설치 필요**(자체 업데이터는 헬퍼를 갱신하지 않음).
+- 실기기 확인(사용자 맥): `"nativeHold":true`, `pmset` → `Now drawing from 'AC Power'`.
+
+### 5.27 운영 개선 5종 (2026-11-05, 1.8.2 build 24 로컬)
+
+1. **헬퍼 버전 관리**: 헬퍼가 `helperVersion`(현재 **2**)을 상태 파일에 발행
+   (구 헬퍼는 필드 없음 → 1). 앱의 `HelperStatus.expectedHelperVersion` 보다 낮으면
+   패널 상단에 "헬퍼가 구버전입니다 [헬퍼 업데이트]" 배너 → 관리자 인증 1회로 재설치.
+   **헬퍼 동작을 바꾸면 두 상수를 함께 올릴 것** — 다르면 `package-app.sh` 가
+   `ERR helperVersion … != expectedHelperVersion` 으로 빌드를 거부한다.
+2. **충전기 끊김 경고**: 헬퍼가 `adapterCut`(CHIE로 hold 중이고 방전 모드가 아님)을
+   발행. 패널 사유 줄이 주황색 경고 아이콘 + "충전기가 연결됐지만 배터리로 작동 중".
+   `nativeHold` 중에는 `reasonLimitAdapterOff` 대신 `reasonLimit` 표시.
+3. **빈 패널 회귀 방지**: `scripts/check-panel-snapshot.sh` — debug 번들로
+   `--screenshot` 실행, 패널 PNG가 20KB 미만이면 실패. 1.8.1 코드로 되돌려 실패
+   (3,409 B)하는 것을 확인, 수정본은 ≈120KB 통과. `build.yml` 마지막 단계에 추가
+   (debug 번들로 `dist/` 를 덮어쓰므로 업로드 뒤에 실행). **CI 러너에서의 동작은
+   아직 미확인**(다음 push 때 확인).
+4. **헬퍼 로그 크기 제한**: launchd가 stderr 파일을 계속 열고 있어 newsyslog식 이름
+   변경은 안 맞음 → 헬퍼가 1MB 초과 시 `akkim-helper.log.1` 로 복사 후 `ftruncate`.
+   로그 줄에 ISO8601 시각 추가.
+5. **Developer ID 대비**: 서명 정체성은 환경변수로 주입.
+   - `AKKIM_SIGN_IDENTITY` → `package-app.sh` 가 hardened runtime + timestamp로 서명.
+   - `AKKIM_INSTALLER_IDENTITY` → `build-pkg.sh` 가 pkg 서명.
+   - `install-helper.sh` 는 유효한 서명이 있으면 ad-hoc 재서명하지 않음.
+   - `release.yml`: 시크릿 `MACOS_CERT_P12`, `MACOS_CERT_PASSWORD`,
+     `NOTARY_APPLE_ID`, `NOTARY_PASSWORD`, `NOTARY_TEAM_ID` 가 있으면 인증서 import →
+     서명 → `notarytool` 공증 → `stapler`. 없으면 기존 ad-hoc 그대로.
+   - 업데이터: 실행 중인 앱에 Team ID가 있으면 내려받은 앱의 서명 유효성 +
+     **같은 Team ID** 를 요구(`errUpdateSigner`). ad-hoc에서는 건너뜀(SHA-256만).
+   - 실제 서명은 유료 Apple Developer 계정·인증서가 있어야 가능(미진행).
 
 ---
 

@@ -54,6 +54,10 @@ enum LKey {
     case topUpHelp
     case cancelTopUp
     case helperNotResponding
+    case helperOutdated
+    case helperUpdateButton
+    case helperUpdateFailed
+    case adapterCutHint
     case useSystemSettings
     case openSystemSettings
     case oneTimeSetup
@@ -183,6 +187,7 @@ enum LKey {
     case errUpdateChecksumFile
     case errUpdateChecksum
     case errUpdateNoBundle
+    case errUpdateSigner
 }
 
 extension LKey {
@@ -262,6 +267,10 @@ extension LKey {
         // Pause reasons
         case .reasonLimit:              return ("Holding at the limit", "제한값에서 유지 중")
         case .reasonLimitAdapterOff:    return ("Holding by cutting AC power", "AC 전원을 끊어 제한 유지 중")
+        case .helperOutdated:           return ("The helper is out of date", "헬퍼가 구버전입니다")
+        case .helperUpdateButton:       return ("Update helper", "헬퍼 업데이트")
+        case .helperUpdateFailed:       return ("Helper update failed", "헬퍼 업데이트 실패")
+        case .adapterCutHint:           return ("Running on battery while plugged in", "충전기가 연결됐지만 배터리로 작동 중")
         case .reasonHeat:               return ("Paused: battery too hot", "일시정지: 배터리 과열")
         case .reasonCalibration:        return ("Calibrating to 100%", "보정을 위해 100%까지 충전 중")
         case .reasonTopUp:              return ("Topping up to 100%", "100%까지 만충전 중")
@@ -444,6 +453,8 @@ extension LKey {
         case .errUpdateChecksum:
             return ("The downloaded file failed its checksum test.",
                     "받은 파일의 체크섬이 맞지 않습니다.")
+        case .errUpdateSigner:
+            return ("The update is not signed by the same developer.", "업데이트가 같은 개발자의 서명이 아닙니다.")
         case .errUpdateNoBundle:
             return ("The downloaded archive contains no app.",
                     "받은 압축 파일에 앱이 없습니다.")

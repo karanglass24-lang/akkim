@@ -5,6 +5,7 @@
 import Foundation
 import AppKit
 import CryptoKit
+import Security
 
 /// Checks GitHub Releases for a newer build and installs it in place.
 ///
@@ -131,6 +132,7 @@ final class UpdateChecker: ObservableObject {
             guard FileManager.default.fileExists(atPath: newApp.path) else {
                 throw UpdateError.missingAppBundle
             }
+            try verifySigner(of: newApp)
             try swapAndRelaunch(newApp: newApp, work: work)
             NSApp.terminate(nil)
         } catch {
@@ -158,6 +160,29 @@ final class UpdateChecker: ObservableObject {
         let digest = SHA256.hash(data: try Data(contentsOf: zip))
         let actual = digest.map { String(format: "%02x", $0) }.joined()
         guard actual == expected else { throw UpdateError.checksumMismatch }
+    }
+
+    /// The checksum is published next to the zip, so it only proves integrity.
+    /// Once releases are Developer ID signed, the Team ID proves who built them:
+    /// a signed app only accepts an update from the same team. Ad-hoc builds
+    /// have no team, so the check is skipped for them.
+    private func verifySigner(of newApp: URL) throws {
+        guard let expected = Self.teamIdentifier(of: Bundle.main.bundleURL) else { return }
+        var code: SecStaticCode?
+        guard SecStaticCodeCreateWithPath(newApp as CFURL, [], &code) == errSecSuccess, let code,
+              SecStaticCodeCheckValidity(code, SecCSFlags(rawValue: kSecCSCheckAllArchitectures), nil) == errSecSuccess,
+              Self.teamIdentifier(of: newApp) == expected else {
+            throw UpdateError.signerMismatch
+        }
+    }
+
+    private static func teamIdentifier(of bundle: URL) -> String? {
+        var code: SecStaticCode?
+        guard SecStaticCodeCreateWithPath(bundle as CFURL, [], &code) == errSecSuccess, let code else { return nil }
+        var info: CFDictionary?
+        guard SecCodeCopySigningInformation(code, SecCSFlags(rawValue: kSecCSSigningInformation), &info) == errSecSuccess,
+              let dict = info as? [String: Any] else { return nil }
+        return dict[kSecCodeInfoTeamIdentifier as String] as? String
     }
 
     /// Waits for this process to exit, replaces the bundle, relaunches.
@@ -228,6 +253,7 @@ enum UpdateError: LocalizedError {
     case missingAppBundle
     case unzipFailed(Int32)
     case notWritable
+    case signerMismatch
 
     var errorDescription: String? {
         switch self {
@@ -237,6 +263,7 @@ enum UpdateError: LocalizedError {
         case .missingAppBundle: return L10n.t(.errUpdateNoBundle)
         case .unzipFailed(let status): return "unzip (\(status))"
         case .notWritable: return L10n.t(.updateNeedsManual)
+        case .signerMismatch: return L10n.t(.errUpdateSigner)
         }
     }
 }

@@ -19,9 +19,10 @@
 #     Resources/THIRD-PARTY-NOTICES.md    (ChargeWatching attribution)
 #
 # Notes:
-# - Ad-hoc codesign (--sign -) is used. On macOS 13+ a LaunchDaemon installed from
-#   an ad-hoc signed helper may require manual approval in System Settings.
-# - For distribution, replace the ad-hoc signing with your Developer ID.
+# - Ad-hoc codesign (--sign -) by default. On macOS 13+ a LaunchDaemon installed
+#   from an ad-hoc signed helper may require manual approval in System Settings.
+# - Set AKKIM_SIGN_IDENTITY="Developer ID Application: …" to sign for
+#   distribution (hardened runtime + secure timestamp, required for notarization).
 set -uo pipefail
 
 cd "$(dirname "$0")/.." || exit 1
@@ -32,6 +33,15 @@ APP_DIR="dist/${APP_NAME}.app"
 CONTENTS="${APP_DIR}/Contents"
 MACOS_DIR="${CONTENTS}/MacOS"
 RES_DIR="${CONTENTS}/Resources"
+
+# The app offers a helper reinstall when the running daemon reports an older
+# version, so the two constants must move together.
+HELPER_V="$(sed -n 's/^let helperVersion = \([0-9][0-9]*\).*/\1/p' Sources/AkkimHelper/main.swift)"
+APP_V="$(sed -n 's/.*static let expectedHelperVersion = \([0-9][0-9]*\).*/\1/p' Sources/Akkim/HelperStatus.swift)"
+if [ -z "${HELPER_V}" ] || [ "${HELPER_V}" != "${APP_V}" ]; then
+  echo "ERR helperVersion (${HELPER_V:-?}) != expectedHelperVersion (${APP_V:-?})"
+  exit 6
+fi
 
 echo "==> swift build -c ${CONFIG}"
 BUILD_PATH="${AKKIM_BUILD_PATH:-.build}"
@@ -65,11 +75,18 @@ printf 'APPL????' > "${CONTENTS}/PkgInfo"
 chmod 755 "${MACOS_DIR}/${APP_NAME}" "${RES_DIR}/akkim-helper"
 chmod 755 "${RES_DIR}/install-helper.sh"
 
-echo "==> ad-hoc codesign (nested helper first, then the bundle)"
+IDENTITY="${AKKIM_SIGN_IDENTITY:--}"
+SIGN_OPTS=()
+if [ "${IDENTITY}" != "-" ]; then
+  SIGN_OPTS=(--options runtime --timestamp)
+fi
+echo "==> codesign as '${IDENTITY}' (nested helper first, then the bundle)"
 # Sign nested code BEFORE the bundle: re-signing a resource afterwards changes
 # its hash and invalidates the bundle seal. Avoid --deep (not recommended).
-codesign --force --sign - "${RES_DIR}/akkim-helper" 2>&1 | sed 's/^/    /' || { echo "ERR codesign helper failed"; exit 3; }
-codesign --force --sign - "${APP_DIR}" 2>&1 | sed 's/^/    /' || { echo "ERR codesign app failed"; exit 4; }
+codesign --force ${SIGN_OPTS[@]+"${SIGN_OPTS[@]}"} --sign "${IDENTITY}" "${RES_DIR}/akkim-helper" 2>&1 | sed 's/^/    /'
+[ "${PIPESTATUS[0]}" -eq 0 ] || { echo "ERR codesign helper failed"; exit 3; }
+codesign --force ${SIGN_OPTS[@]+"${SIGN_OPTS[@]}"} --sign "${IDENTITY}" "${APP_DIR}" 2>&1 | sed 's/^/    /'
+[ "${PIPESTATUS[0]}" -eq 0 ] || { echo "ERR codesign app failed"; exit 4; }
 
 echo "==> verify"
 if ! codesign --verify --deep --strict "${APP_DIR}" 2>&1 | sed 's/^/    /'; then

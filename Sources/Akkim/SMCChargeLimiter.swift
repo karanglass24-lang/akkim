@@ -287,6 +287,11 @@ final class SMCChargeLimiter: ObservableObject {
         }
     }
 
+    /// Replaces the installed daemon with the one bundled in this app.
+    func reinstall() async -> Bool {
+        await install()
+    }
+
     func uninstall() async {
         guard let script = bundledPath("install-helper", "sh") else { return }
         enabled = false

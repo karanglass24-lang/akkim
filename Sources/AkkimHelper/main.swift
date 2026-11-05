@@ -326,7 +326,31 @@ var hasCHIE = false
 /// holding must keep the adapter connected instead of running on battery.
 var nativeHoldActive = false
 
-func log(_ m: String) { FileHandle.standardError.write(("[akkim-helper] " + m + "\n").data(using: .utf8)!) }
+/// Bump whenever the daemon's behavior changes. The app compares it with
+/// `HelperStatus.expectedHelperVersion` and offers a reinstall when older
+/// (the self-updater replaces only the app bundle, never this binary).
+let helperVersion = 2
+
+let logPath = "/var/log/akkim-helper.log"
+/// launchd keeps stderr open on the log file, so an external rotation would
+/// keep writing to the renamed file. Rotate in place instead.
+let logMaxBytes: off_t = 1_000_000
+
+func rotateLogIfNeeded() {
+    var st = stat()
+    guard fstat(STDERR_FILENO, &st) == 0, (st.st_mode & S_IFMT) == S_IFREG,
+          st.st_size > logMaxBytes else { return }
+    let old = logPath + ".1"
+    try? FileManager.default.removeItem(atPath: old)
+    try? FileManager.default.copyItem(atPath: logPath, toPath: old)
+    _ = ftruncate(STDERR_FILENO, 0)
+}
+
+func log(_ m: String) {
+    rotateLogIfNeeded()
+    let stamp = ISO8601DateFormatter().string(from: Date())
+    FileHandle.standardError.write(("\(stamp) [akkim-helper] " + m + "\n").data(using: .utf8)!)
+}
 
 func allowCharging() {
     if useCHTE { SMC.write(CHTE, CHTE_ALLOW) }
@@ -392,12 +416,18 @@ var lastConfiguredLimit = -1
 /// Publishes what the daemon is doing so the app can explain the pause reason
 /// and hide unsupported controls (e.g. discharge without CHIE).
 func publishState(_ cfg: Config, _ reason: String) {
+    // CHIE has the adapter disconnected for a hold (not discharge mode): the
+    // Mac runs on battery although it is plugged in.
+    let adapterCut = !useCHTE && holding && !discharging
+        && (reason == "heat" || (reason == "limit" && !nativeHoldActive))
     let obj: [String: Any] = [
         "schemaVersion": 1,
         "ts": Date().timeIntervalSince1970,
         "holding": holding,
         "discharging": discharging,
         "actuator": useCHTE ? "CHTE" : "CHIE",
+        "helperVersion": helperVersion,
+        "adapterCut": adapterCut,
         "chieAvailable": hasCHIE,
         "soc": lastSoc,
         "tempC": lastTempC,

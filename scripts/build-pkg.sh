@@ -9,6 +9,7 @@
 # admin once here instead of seeing the osascript prompt on first enable.
 #
 # Usage: bash scripts/build-pkg.sh [output.pkg]
+# Set AKKIM_INSTALLER_IDENTITY="Developer ID Installer: …" to sign the package.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -48,8 +49,14 @@ exit 0
 EOF
 chmod 755 "$STAGE/scripts/postinstall"
 
+SIGN_ARGS=()
+if [ -n "${AKKIM_INSTALLER_IDENTITY:-}" ]; then
+  SIGN_ARGS=(--sign "$AKKIM_INSTALLER_IDENTITY" --timestamp)
+fi
+
 echo "==> pkgbuild $VERSION"
-pkgbuild --root "$STAGE/root" \
+pkgbuild ${SIGN_ARGS[@]+"${SIGN_ARGS[@]}"} \
+         --root "$STAGE/root" \
          --scripts "$STAGE/scripts" \
          --identifier com.akkim.app \
          --version "$VERSION" \
