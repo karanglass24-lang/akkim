@@ -35,7 +35,7 @@ Apple Silicon Mac용 메뉴바 앱. 충전 제한은 macOS 26.4+의 네이티브
 | 시스템 제어 | macOS 26.4+ 네이티브 Charge Limit 직접 제어(PowerUI), Shortcuts/SMC 폴백 |
 | 배포 | 자체 업데이터 + `Akkim.pkg`(앱·헬퍼 일괄 설치) + `Akkim.zip` + `.sha256` |
 | UI | Liquid Glass(패널 전면, macOS 26+), 패널 2탭 / 설정 4탭, 한·영 |
-| 현재 버전 | **1.8.1 (build 22)** — `/Applications/Akkim.app` 실행 중 |
+| 현재 버전 | 배포 1.8.1 (22) · 로컬 **1.8.2 (23)** — 미배포, 5.25·5.26 포함 |
 | CI | `.github/workflows/build.yml` (macos-26, build → package → signature/bundle 검증 → artifact) |
 
 ### 1.2 아직 검증되지 않은 것
@@ -617,11 +617,24 @@ macOS 26의 Liquid Glass를 패널에 처음 적용했다.
     → `popoverDidClose` 에서 `stopEventMonitor()`.
   - 자체 업데이터 swap 스크립트: `mv` 실패 시 앱이 종료된 채 재실행되지 않음
     → 실패 경로에서도 기존 앱을 `open`.
-- **미해결(설계 결정 필요)**: CHTE가 없고 CHIE만 있는 맥에서 헬퍼는 "hold"를
-  **어댑터 분리(CHIE)** 로 구현한다. macOS 26.4+ 네이티브 Charge Limit이 이미
-  85%를 유지하고 있는데도 헬퍼가 AC를 끊어 고부하(≈77 W)에서 배터리로
-  구동되며 85→80→85% 세일링을 수 분 간격으로 반복한다(로그 확인). 배터리 보호
-  목적과 반대이므로, 네이티브 제어 가능 시 CHIE hold를 끄는 방안을 검토할 것.
+### 5.26 CHIE 전용 맥에서 충전기 끊기 중단 — `nativeHold` (2026-11-05, 1.8.2 로컬)
+
+**증상**: CHTE가 없고 CHIE만 있는 맥에서 헬퍼가 "hold"를 **어댑터 분리(CHIE)** 로
+구현. macOS 26.4+ 네이티브 Charge Limit이 이미 85%를 지키는데도 AC를 끊어
+고부하(≈77 W)에서 배터리로 구동, 85→80→85%를 수 분 간격으로 반복(로그 확인).
+
+- 설정 파일에 `nativeHold` 필드 추가(구 헬퍼는 무시 → 하위 호환).
+- 앱(`ChargeLimitController.reconcileSystemLimit`): **시스템 제한 == 앱 제한(<100)
+  이고 제한이 켜져 있을 때만** `limiter.setNativeHold(true)`. 값이 바뀔 때만 기록.
+  만충전/보정 중에는 시스템이 100이 되므로 자동으로 `false`.
+- 헬퍼: `nativeHoldActive = !useCHTE && cfg.nativeHold` 이면 `holdCharging()` 이
+  어댑터를 **연결 상태로 유지**(macOS가 충전 정지). CHIE는 방전 모드와 열 보호에만 사용.
+  `adapterSuppressed` 에서 네이티브 hold 제외(케이블 뽑힘 감지 유지),
+  네이티브 hold 중 미충전은 `systemHold` 대신 `limit` 으로 발행.
+  `clearTopUpFlag` 가 `nativeHold` 를 보존.
+- 함께 수정: 열 보호 진입 첫 주기에 실제로 hold를 쓰지 않던 버그
+  (`holdChargingForHeat()` 를 매 주기 호출, CHIE 맥에서는 제한 아래에서도 충전 정지 필요).
+- **헬퍼 바이너리가 바뀌었으므로 재설치 필요**(자체 업데이터는 헬퍼를 갱신하지 않음).
 
 ---
 

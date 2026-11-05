@@ -9,7 +9,10 @@
 // - Charge control key CHTE (ui32): write 0x00000001 = hold charging (adapter
 //   powered, battery not discharged; CHSC instantaneous 1->0). Write 0 = allow.
 // - Fallback actuator CHIE (ui8): 0x00 = connect adapter, 0x08 = disconnect
-//   (only used when CHTE is not available on the machine).
+//   (only used when CHTE is not available on the machine). With
+//   `nativeHold = true` (macOS 26.4+ Charge Limit already equals ours) the
+//   hold leaves the adapter connected and lets macOS stop charging; CHIE is
+//   then used only for discharge mode and heat protection.
 // - Sailing mode: hold when SoC >= limit; release when SoC <= limit - deadband
 //   (default deadband 5, aligned with Apple's official "recharge after >5%").
 // - Hard-stop mode (sailingMode = false): hold at the limit, recharge whenever
@@ -27,7 +30,8 @@
 // Configuration is read from the user-space app-writable JSON file:
 //   /Users/Shared/Akkim/smc-limit.json
 //   {"schemaVersion":1,"enabled":true,"limit":80,"deadband":5,"calibrationDays":7,
-//    "sailingMode":true,"discharge":false,"heatProtectionC":0,"topUp":false}
+//    "sailingMode":true,"discharge":false,"heatProtectionC":0,"topUp":false,
+//    "nativeHold":false}
 // The daemon publishes its current state (reason, holding, CHIE availability,
 // SoC, temperature) to /Users/Shared/Akkim/helper-state.json for the app.
 import Foundation
@@ -186,13 +190,16 @@ struct Config {
     var discharge: Bool
     var heatProtectionC: Int
     var topUp: Bool
+    /// The app keeps macOS's own Charge Limit equal to `limit`.
+    var nativeHold: Bool
 }
 
 let configDir = "/Users/Shared/Akkim"
 let configPath = "/Users/Shared/Akkim/smc-limit.json"
 
 let defaultConfig = Config(enabled: false, limit: 80, deadband: 5, calibrationDays: 7,
-                           sailingMode: true, discharge: false, heatProtectionC: 0, topUp: false)
+                           sailingMode: true, discharge: false, heatProtectionC: 0, topUp: false,
+                           nativeHold: false)
 /// Last successfully parsed config. Used instead of instantly releasing the
 /// charge limit when a read lands in the middle of a write.
 var lastGoodConfig: Config?
@@ -231,7 +238,8 @@ func readConfig() -> Config {
         sailingMode: (j["sailingMode"] as? Bool) ?? true,
         discharge: (j["discharge"] as? Bool) ?? false,
         heatProtectionC: heat,
-        topUp: (j["topUp"] as? Bool) ?? false
+        topUp: (j["topUp"] as? Bool) ?? false,
+        nativeHold: (j["nativeHold"] as? Bool) ?? false
     )
     lastGoodConfig = cfg
     return cfg
@@ -252,6 +260,7 @@ func clearTopUpFlag(_ cfg: Config) {
         "discharge": cfg.discharge,
         "heatProtectionC": cfg.heatProtectionC,
         "topUp": false,
+        "nativeHold": cfg.nativeHold,
     ]
     if let data = try? JSONSerialization.data(withJSONObject: obj) {
         try? data.write(to: URL(fileURLWithPath: configPath), options: .atomic)
@@ -313,6 +322,9 @@ let CHIE_DISCONNECT: [UInt8] = [0x08] // disconnect adapter (fallback)
 
 var useCHTE = false
 var hasCHIE = false
+/// CHIE-only machine whose macOS Charge Limit already holds at our limit:
+/// holding must keep the adapter connected instead of running on battery.
+var nativeHoldActive = false
 
 func log(_ m: String) { FileHandle.standardError.write(("[akkim-helper] " + m + "\n").data(using: .utf8)!) }
 
@@ -326,9 +338,17 @@ func holdCharging() {
         SMC.write(CHTE, CHTE_HOLD)
         // 이전 방전 모드에서 남은 CHIE disconnect 를 확실히 해제합니다.
         if hasCHIE { SMC.write(CHIE, CHIE_CONNECT) }
+    } else if nativeHoldActive {
+        SMC.write(CHIE, CHIE_CONNECT)
     } else {
         SMC.write(CHIE, CHIE_DISCONNECT)
     }
+}
+
+/// Heat protection must stop charging below the limit too, which macOS's
+/// Charge Limit does not do, so a CHIE-only machine still cuts the adapter.
+func holdChargingForHeat() {
+    if useCHTE { holdCharging() } else { SMC.write(CHIE, CHIE_DISCONNECT) }
 }
 
 /// 방전 모드: 어댑터를 SMC 레벨에서 분리합니다 (CHTE 는 allow 로 풀어 충돌 방지).
@@ -398,6 +418,7 @@ func calibrationDue(_ cfg: Config) -> Bool {
 
 while true {
     let cfg = readConfig()
+    nativeHoldActive = !useCHTE && cfg.nativeHold
     guard let bat = readBattery(), bat.soc >= 0 else {
         if holding || discharging { allowCharging(); holding = false; discharging = false }
         lastSoc = -1
@@ -420,9 +441,8 @@ while true {
         if !holding {
             holding = true
             log("battery \(String(format: "%.1f", t))C >= \(cfg.heatProtectionC)C -> hold charging (heat)")
-        } else {
-            holdCharging()
         }
+        holdChargingForHeat()
         publishState(cfg, "heat")
         Thread.sleep(forTimeInterval: 10)
         continue
@@ -431,7 +451,8 @@ while true {
     // Not enabled / limit = 100 / cable unplugged -> release and reconnect.
     // 주의: CHIE 로 어댑터를 끊거나 hold 중이면 SMC 가 ExternalConnected=false 로
     // 보이므로, 우리가 의도적으로 억제한 상태는 "케이블 뽑힘"으로 보지 않습니다.
-    let adapterSuppressed = holding || discharging
+    // A native hold keeps the adapter connected, so it hides nothing.
+    let adapterSuppressed = (holding && !nativeHoldActive) || discharging
     if !cfg.enabled || cfg.limit >= 100 || (!bat.externalConnected && !adapterSuppressed) {
         if holding || discharging {
             allowCharging()
@@ -555,7 +576,10 @@ while true {
         // We allow charging but the pack is not charging while plugged in.
         // macOS 26.4+ has its own Charge Limit that can be lower than ours.
         if notChargingSince == nil { notChargingSince = Date() }
-        if let since = notChargingSince, Date().timeIntervalSince(since) >= 30 {
+        if nativeHoldActive {
+            // Expected: macOS is holding at the same limit on our behalf.
+            publishState(cfg, "limit")
+        } else if let since = notChargingSince, Date().timeIntervalSince(since) >= 30 {
             publishState(cfg, "systemHold")
         } else {
             publishState(cfg, "charging")

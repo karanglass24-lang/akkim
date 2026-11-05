@@ -17,6 +17,9 @@ final class SMCChargeLimiter: ObservableObject {
     @Published private(set) var dischargeEnabled: Bool = false
     @Published private(set) var heatProtectionC: Int = 0
     @Published private(set) var topUpRequested: Bool = false
+    /// macOS's own Charge Limit already holds at `limit`, so a CHIE-only helper
+    /// must not cut the adapter to hold (that runs the Mac on battery).
+    private(set) var nativeHold: Bool = false
 
     private let configDir = "/Users/Shared/Akkim"
     private let configPath = "/Users/Shared/Akkim/smc-limit.json"
@@ -90,6 +93,7 @@ final class SMCChargeLimiter: ObservableObject {
             dischargeEnabled = (j["discharge"] as? Bool) ?? AppSettings.shared.dischargeMode
             heatProtectionC = (j["heatProtectionC"] as? Int) ?? AppSettings.shared.heatProtectionC
             topUpRequested = (j["topUp"] as? Bool) ?? false
+            nativeHold = (j["nativeHold"] as? Bool) ?? false
             // A top-up without an enabled limit can never be enforced.
             if !enabled { topUpRequested = false }
             // 설정 파일이 기준값입니다. 앱 토글 상태도 같은 값으로 맞춰 UI 불일치를 막습니다.
@@ -175,6 +179,13 @@ final class SMCChargeLimiter: ObservableObject {
     func setLimit(_ percent: Int) {
         limit = percent
         if enabled { writeConfig() }
+    }
+
+    /// Writes only on change: every write briefly mutes `syncFromDaemon`.
+    func setNativeHold(_ value: Bool) {
+        guard installed, nativeHold != value else { return }
+        nativeHold = value
+        writeConfig()
     }
 
     func setSailingMode(_ enabled: Bool) {
@@ -308,6 +319,7 @@ final class SMCChargeLimiter: ObservableObject {
             "calibrationDays": calibrationDays,
             "heatProtectionC": heatProtectionC,
             "topUp": topUpRequested,
+            "nativeHold": nativeHold,
         ]
         if let data = try? JSONSerialization.data(withJSONObject: obj) {
             // Atomic write: the daemon polls this file every 10 s and must never

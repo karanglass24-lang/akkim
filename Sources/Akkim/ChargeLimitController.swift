@@ -149,6 +149,12 @@ final class ChargeLimitController: ObservableObject {
     ///   hold charging below what the app allows,
     /// - when the app limit is off the system value is left alone.
     private func reconcileSystemLimit() {
+        defer {
+            // Hand the hold to macOS only while its limit really equals ours;
+            // otherwise the helper keeps enforcing the limit itself.
+            let limit = limiter.limit
+            limiter.setNativeHold(limiter.enabled && limit < 100 && systemLimit == limit)
+        }
         guard SystemChargeLimit.isAvailable, let current = SystemChargeLimit.currentLimit() else {
             systemLimit = nil
             return
