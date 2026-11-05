@@ -650,8 +650,8 @@ macOS 26의 Liquid Glass를 패널에 처음 적용했다.
 3. **빈 패널 회귀 방지**: `scripts/check-panel-snapshot.sh` — debug 번들로
    `--screenshot` 실행, 패널 PNG가 20KB 미만이면 실패. 1.8.1 코드로 되돌려 실패
    (3,409 B)하는 것을 확인, 수정본은 ≈120KB 통과. `build.yml` 마지막 단계에 추가
-   (debug 번들로 `dist/` 를 덮어쓰므로 업로드 뒤에 실행). **CI 러너에서의 동작은
-   아직 미확인**(다음 push 때 확인).
+   (debug 번들로 `dist/` 를 덮어쓰므로 업로드 뒤에 실행). CI(`macos-26`)에서도
+   통과 확인: 32,182 B(러너에 배터리가 없어 실기기보다 작다 — 임계값 20KB 유지).
 4. **헬퍼 로그 크기 제한**: launchd가 stderr 파일을 계속 열고 있어 newsyslog식 이름
    변경은 안 맞음 → 헬퍼가 1MB 초과 시 `akkim-helper.log.1` 로 복사 후 `ftruncate`.
    로그 줄에 ISO8601 시각 추가.
