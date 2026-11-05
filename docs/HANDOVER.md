@@ -35,7 +35,7 @@ Apple Silicon Mac용 메뉴바 앱. 충전 제한은 macOS 26.4+의 네이티브
 | 시스템 제어 | macOS 26.4+ 네이티브 Charge Limit 직접 제어(PowerUI), Shortcuts/SMC 폴백 |
 | 배포 | 자체 업데이터 + `Akkim.pkg`(앱·헬퍼 일괄 설치) + `Akkim.zip` + `.sha256` |
 | UI | Liquid Glass(패널 전면, macOS 26+), 패널 2탭 / 설정 4탭, 한·영 |
-| 현재 버전 | **1.8.2 (build 24)** 배포 (2026-11-05) — 5.25–5.27 포함 |
+| 현재 버전 | 배포 1.8.2 (24) · 로컬 **1.8.3 (25)** — 5.28 포함, 미배포 |
 | CI | `.github/workflows/build.yml` (macos-26, build → package → signature/bundle 검증 → artifact) |
 
 ### 1.2 아직 검증되지 않은 것
@@ -666,6 +666,23 @@ macOS 26의 Liquid Glass를 패널에 처음 적용했다.
      **같은 Team ID** 를 요구(`errUpdateSigner`). ad-hoc에서는 건너뜀(SHA-256만).
    - 실제 서명은 유료 Apple Developer 계정·인증서가 있어야 가능(미진행).
 
+
+### 5.28 충전 제한 변경이 되돌아가던 문제 (2026-11-05, 1.8.3 로컬)
+
+**증상**: 패널에서 85 → 90%를 골라도 곧 85%로 돌아감(헬퍼 설정만 90).
+
+**원인**(1.7.2부터 잠재): `recomputeState` 가 시스템 제어가 가능하면 `state` 를
+**마지막으로 읽은 `systemLimit`(구값)** 에서 만들었고, 이어서 `reconcileSystemLimit` 이
+그 `state` 를 목표로 macOS 제한을 다시 써 넣어 사용자 변경을 되돌렸다. `set()` 이
+`systemLimit` 을 갱신하지 않아 매번 결정적으로 재현됐다. 끄기(100%)도 같은 원인.
+
+- 수정: 헬퍼가 설치돼 있으면 **앱 설정(`limiter.enabled/limit`)이 기준**, 시스템은
+  따라오기만 한다. 헬퍼가 없으면 기존처럼 시스템 값이 기준(1.7.2 토글 수정 유지),
+  이때 reconcile은 시스템 값을 건드리지 않는다. `set()`/끄기 성공 시 `systemLimit`
+  즉시 갱신, `refresh()` 두 번째 계산은 데몬 동기화 후의 limiter 값을 사용.
+- 디버그 훅 `Akkim --set-limit N`: 패널 선택과 같은 경로 → 12초 대기(5초 reconcile
+  타이머 통과) → `state/system/helper` 출력. **메뉴바 앱을 먼저 종료**해야 한다.
+  수정 전 `90 -> state=limited(85) system=85 helper=90`, 수정 후 90/80/85 모두 유지.
 ---
 
 ## 6. 실기기 테스트 체크리스트

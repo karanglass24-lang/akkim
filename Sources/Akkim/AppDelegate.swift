@@ -59,6 +59,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             return
         }
 
+        // `Akkim --set-limit 90`: the same path as picking a step in the panel,
+        // then waits past the 5 s reconcile timer and prints what stuck.
+        // Quit the menu bar copy first, or it re-applies its own limit.
+        if let idx = CommandLine.arguments.firstIndex(of: "--set-limit"),
+           CommandLine.arguments.count > idx + 1,
+           let value = Int(CommandLine.arguments[idx + 1]) {
+            let controller = container.chargeLimitController
+            let limiter = container.smcLimiter
+            Task { @MainActor in
+                await controller.refresh()
+                await controller.set(value)
+                try? await Task.sleep(nanoseconds: 12_000_000_000)
+                await controller.refresh()
+                print("set-limit \(value) -> state=\(controller.state) system=\(SystemChargeLimit.currentLimit() ?? -1) helper=\(limiter.limit) error=\(controller.lastError?.localizedDescription ?? "-")")
+                exit(0)
+            }
+            return
+        }
+
         // Debug hook: `Akkim --system-limit 85` writes the macOS Charge Limit
         // directly and prints the value read back. Used to verify the PowerUI
         // path without the Shortcuts setup.

@@ -94,18 +94,24 @@ final class ChargeLimitController: ObservableObject {
         // limit) and once after (it may have moved the system limit).
         recomputeState(installed: installed, enabled: enabled, limit: limit)
         refreshHelperStatus()
-        recomputeState(installed: installed, enabled: enabled, limit: limit)
+        // The daemon sync may have updated the limiter; use its current values.
+        recomputeState(installed: limiter.installed, enabled: limiter.enabled, limit: limiter.limit)
     }
 
+    /// With the helper installed the app's config is the record of what the
+    /// user chose, and the system limit follows it. Deriving `state` from the
+    /// last system value read made every change snap back: reconcile then
+    /// pushed that stale value to macOS again (1.7.2–1.8.2).
+    ///
     /// Without the helper the system Charge Limit is the only actuator, so it
-    /// alone decides whether a limit is active. (Before 1.7.2 `state` was
-    /// derived from the helper only, which made the toggle snap back off on
-    /// machines where the helper was never installed.)
+    /// alone decides whether a limit is active (the 1.7.2 toggle fix).
     private func recomputeState(installed: Bool, enabled: Bool, limit: Int) {
-        if capability.systemControl, let systemLimit, systemLimit < 100 {
+        if installed {
+            state = enabled ? .limited(limit) : .unlimited
+        } else if capability.systemControl, let systemLimit, systemLimit < 100 {
             state = .limited(systemLimit)
         } else {
-            state = (enabled && installed) ? .limited(limit) : .unlimited
+            state = .unlimited
         }
     }
 
@@ -165,11 +171,13 @@ final class ChargeLimitController: ObservableObject {
         let daemonNeedsFull = fresh && (helperStatus?.reason == .topUp || helperStatus?.reason == .calibration)
         let needsFull = isTopUpActive || daemonNeedsFull
 
+        // Only the helper's config records the user's choice; without it the
+        // system value is the choice and must be left alone.
         var desired: Int?
         if needsFull {
             desired = 100
-        } else if case .limited(let appLimit) = state {
-            desired = appLimit
+        } else if limiter.installed, limiter.enabled {
+            desired = limiter.limit
         }
         guard let desired, desired != current, ChargeLimitConstants.steps.contains(desired) else { return }
         do {
@@ -213,8 +221,10 @@ final class ChargeLimitController: ObservableObject {
         state = .unlimited   // optimistic: avoid the toggle snapping back before refresh
         // 100% means "no limit" for both the system Charge Limit and Shortcuts.
         if capability.systemControl {
-            do { try SystemChargeLimit.setLimit(100) }
-            catch { lastError = .failed(error.localizedDescription) }
+            do {
+                try SystemChargeLimit.setLimit(100)
+                systemLimit = 100
+            } catch { lastError = .failed(error.localizedDescription) }
         } else if !limiter.installed, capability.platformSupportsSet, let bridge, await bridgeAvailable() {
             do { try await bridge.set(percent: 100) }
             catch { lastError = .failed(error.localizedDescription) }
@@ -248,6 +258,7 @@ final class ChargeLimitController: ObservableObject {
             if useSystem {
                 do {
                     try SystemChargeLimit.setLimit(percent)
+                    systemLimit = percent
                     handled = true
                 } catch {
                     systemError = error
